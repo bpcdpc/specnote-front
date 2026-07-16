@@ -1,0 +1,237 @@
+/* 폰트: 라틴 Geist(Google Fonts) + 한글 Pretendard(jsDelivr CDN).
+   @import는 파일 최상단에 있어야 적용된다. */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* 다크모드: .dark 클래스로 토글 (shadcn 표준).
+   ThemeContext가 <html>에 .dark 를 붙였다 뗀다. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ══════════════════════════════════════════════════════════
+   라이트 (기본)
+   ══════════════════════════════════════════════════════════ */
+:root {
+  /* ── 표면 ── */
+  --sn-surface-1: #ffffff; /* 카드 · 헤더 · 패널 */
+  --sn-surface-2: #fafafa; /* 페이지 배경 */
+  --sn-surface-3: #f2f2f2; /* 선택된 항목 · 살짝 띄운 면 */
+  --sn-hover: #f0f0f0; /* ghost 버튼 · 목록 행 호버 */
+
+  /* ── 텍스트 ── */
+  --sn-fg-1: #171717; /* 본문 */
+  --sn-fg-2: #666666; /* 보조 */
+  --sn-fg-3: #8f8f8f; /* 흐림 · 캡션 */
+
+  /* ── 보더 ── */
+  --sn-border: #eaeaea;
+
+  /* ── 강조 (Vercel Blue) ──
+     최소한으로만 쓴다: primary 버튼 · 포커스 링 · 링크/멘션 · 선택 표시.
+     아바타 · 보조 버튼 · 카드 강조에는 쓰지 않는다. */
+  --sn-accent: #0070f3;
+  --sn-accent-hover: #0060d9;
+
+  /* ── 메서드 뱃지: 라이트는 솔리드 (흰 배경에서 대비 확보) ── */
+  --sn-get-fg: #ffffff;
+  --sn-get-bg: #52ab1f;
+  --sn-get-border: #52ab1f;
+
+  --sn-post-fg: #ffffff;
+  --sn-post-bg: #2b8fe6;
+  --sn-post-border: #2b8fe6;
+
+  --sn-put-fg: #ffffff;
+  --sn-put-bg: #e08c1a;
+  --sn-put-border: #e08c1a;
+
+  --sn-patch-fg: #ffffff;
+  --sn-patch-bg: #12b48c;
+  --sn-patch-border: #12b48c;
+
+  --sn-delete-fg: #ffffff;
+  --sn-delete-bg: #ef5350;
+  --sn-delete-border: #ef5350;
+
+  /* ── shadcn 변수 → SpecNote 토큰 매핑 ──
+     shadcn 컴포넌트가 코드 수정 없이 우리 색을 따르게 한다. */
+  --background: var(--sn-surface-2);
+  --foreground: var(--sn-fg-1);
+  --card: var(--sn-surface-1);
+  --card-foreground: var(--sn-fg-1);
+  --popover: var(--sn-surface-1);
+  --popover-foreground: var(--sn-fg-1);
+
+  --primary: var(--sn-accent);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--sn-surface-3);
+  --secondary-foreground: var(--sn-fg-1);
+
+  --muted: var(--sn-surface-3);
+  --muted-foreground: var(--sn-fg-2);
+
+  /* shadcn의 accent = "은은한 hover 배경" (강조색이 아니다) */
+  --accent: var(--sn-hover);
+  --accent-foreground: var(--sn-fg-1);
+
+  --destructive: var(--sn-delete-bg);
+
+  --border: var(--sn-border);
+  --input: var(--sn-border);
+  --ring: var(--sn-accent);
+
+  --sidebar: var(--sn-surface-1);
+  --sidebar-foreground: var(--sn-fg-1);
+  --sidebar-primary: var(--sn-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--sn-hover);
+  --sidebar-accent-foreground: var(--sn-fg-1);
+  --sidebar-border: var(--sn-border);
+  --sidebar-ring: var(--sn-accent);
+
+  /* radius 3px 통일 (아바타만 원형) */
+  --radius: 3px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   다크 (.dark)
+   ══════════════════════════════════════════════════════════ */
+.dark {
+  --sn-surface-1: #0a0a0a;
+  --sn-surface-2: #000000;
+  --sn-surface-3: #141414;
+  --sn-hover: #1c1c1c;
+
+  --sn-fg-1: #ededed;
+  --sn-fg-2: #a1a1a1;
+  --sn-fg-3: #737373;
+
+  --sn-border: #1f1f1f;
+
+  --sn-accent: #0070f3;
+  --sn-accent-hover: #3291ff;
+
+  /* 메서드 뱃지: 다크는 아웃라인 (밝은 글자 + 옅은 배경 + 보더).
+     블랙 배경에서 솔리드는 혼자 튄다. */
+  --sn-get-fg: #8fc75c;
+  --sn-get-bg: rgba(99, 153, 34, 0.13);
+  --sn-get-border: rgba(99, 153, 34, 0.32);
+
+  --sn-post-fg: #6fb4e8;
+  --sn-post-bg: rgba(55, 138, 221, 0.13);
+  --sn-post-border: rgba(55, 138, 221, 0.32);
+
+  --sn-put-fg: #d99b45;
+  --sn-put-bg: rgba(186, 117, 23, 0.13);
+  --sn-put-border: rgba(186, 117, 23, 0.34);
+
+  --sn-patch-fg: #4fc3a1;
+  --sn-patch-bg: rgba(29, 158, 117, 0.13);
+  --sn-patch-border: rgba(29, 158, 117, 0.32);
+
+  --sn-delete-fg: #ef7a79;
+  --sn-delete-bg: rgba(226, 75, 74, 0.13);
+  --sn-delete-border: rgba(226, 75, 74, 0.32);
+
+  /* 다크에서 값이 달라야 하는 shadcn 변수만 재지정.
+     나머지는 --sn-* 를 참조하므로 자동 반영된다. */
+  --destructive: #e24b4a;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Tailwind 유틸 등록
+   inline: 유틸이 값을 박지 않고 var()를 참조 → 런타임 다크 전환.
+   ══════════════════════════════════════════════════════════ */
+@theme inline {
+  /* SpecNote: bg-surface-1, text-fg-2, bg-hover 등 */
+  --color-surface-1: var(--sn-surface-1);
+  --color-surface-2: var(--sn-surface-2);
+  --color-surface-3: var(--sn-surface-3);
+  --color-hover: var(--sn-hover);
+
+  --color-fg-1: var(--sn-fg-1);
+  --color-fg-2: var(--sn-fg-2);
+  --color-fg-3: var(--sn-fg-3);
+
+  --color-accent-hover: var(--sn-accent-hover);
+
+  /* 메서드 뱃지: text-get-fg / bg-get-bg / border-get-border */
+  --color-get-fg: var(--sn-get-fg);
+  --color-get-bg: var(--sn-get-bg);
+  --color-get-border: var(--sn-get-border);
+
+  --color-post-fg: var(--sn-post-fg);
+  --color-post-bg: var(--sn-post-bg);
+  --color-post-border: var(--sn-post-border);
+
+  --color-put-fg: var(--sn-put-fg);
+  --color-put-bg: var(--sn-put-bg);
+  --color-put-border: var(--sn-put-border);
+
+  --color-patch-fg: var(--sn-patch-fg);
+  --color-patch-bg: var(--sn-patch-bg);
+  --color-patch-border: var(--sn-patch-border);
+
+  --color-delete-fg: var(--sn-delete-fg);
+  --color-delete-bg: var(--sn-delete-bg);
+  --color-delete-border: var(--sn-delete-border);
+
+  /* 폰트: Geist(라틴) → Pretendard(한글) → 시스템 */
+  --font-sans: "Geist", "Pretendard", system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* shadcn 색 유틸 (bg-primary, text-muted-foreground 등) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* radius 3px 통일 — sm/md/lg/xl 모두 같은 값.
+     shadcn 컴포넌트가 rounded-md 등을 써도 3px로 나온다. */
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-card: 3px;
+  --radius-ctl: 3px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-surface-2 text-fg-1;
+    font-family: var(--font-sans);
+  }
+  html {
+    @apply font-sans;
+  }
+}
