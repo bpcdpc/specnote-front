@@ -39,21 +39,33 @@
   --sn-accent-muted: #7aa7f0; /* 중간 — 보조 강조 */
 
   /* ── 메서드 뱃지: 코드 토큰 톤 — 텍스트만(배경·보더 없음) ── */
-  --sn-get-fg: #4a9c2d;
-  --sn-get-bg: transparent;
+  /* --sn-get-fg: #4a9c2d; */
+  /* --sn-get-bg: transparent; */
   --sn-get-border: transparent;
-  --sn-post-fg: #2b7fd4;
-  --sn-post-bg: transparent;
+  /* --sn-post-fg: #2b7fd4; */
+  /* --sn-post-bg: transparent; */
   --sn-post-border: transparent;
-  --sn-put-fg: #c47f1a;
-  --sn-put-bg: transparent;
+  /* --sn-put-fg: #c47f1a; */
+  /* --sn-put-bg: transparent; */
   --sn-put-border: transparent;
-  --sn-patch-fg: #0f9d76;
-  --sn-patch-bg: transparent;
+  /* --sn-patch-fg: #0f9d76; */
+  /* --sn-patch-bg: transparent; */
   --sn-patch-border: transparent;
-  --sn-delete-fg: #d83b3a;
-  --sn-delete-bg: transparent;
+  /* --sn-delete-fg: #d83b3a; */
+  /* --sn-delete-bg: transparent; */
   --sn-delete-border: transparent;
+
+  --sn-get-bg: #067a2e;
+  --sn-post-bg: #0066cc;
+  --sn-put-bg: #007a78;
+  --sn-patch-bg: #9a3beb;
+  --sn-delete-bg: #d6006a;
+
+  --sn-get-fg: #ffffff;
+  --sn-post-fg: #ffffff;
+  --sn-put-fg: #ffffff;
+  --sn-patch-fg: #ffffff;
+  --sn-delete-fg: #ffffff;
 
   /* ── CTA 버튼: 라이트는 검정 채움 ── */
   --primary: #000000;
@@ -111,8 +123,11 @@
   --sn-fg-3: #737373;
 
   --sn-border: #2b2b2b;
-  --sn-input-border: #1f1f1f; /* 인풋용 — 버튼 보더보다 옅게 */
-  --sn-input-bg: #0d0d0d; /* 인풋 배경 — 순검정 위 살짝 */
+  /* --sn-input-border: #1f1f1f;
+  --sn-input-bg: #0d0d0d; */
+
+  --sn-input-border: #212121;
+  --sn-input-bg: #000000;
 
   --sn-accent: #0070f3;
   --sn-accent-hover: #3291ff;
@@ -120,11 +135,35 @@
   --sn-accent-muted: #2d5a9e; /* 중간 */
 
   /* 메서드 뱃지: 다크는 밝은 코드 토큰 컬러 (bg·border는 :root의 transparent 상속) */
-  --sn-get-fg: #5cc264;
+  /* --sn-get-fg: #5cc264;
   --sn-post-fg: #5aa9ff;
   --sn-put-fg: #e0a35c;
   --sn-patch-fg: #4ec9b0;
-  --sn-delete-fg: #ff6b81;
+  --sn-delete-fg: #ff6b81; */
+
+  /* --sn-get-bg: transparent;
+  --sn-post-bg: transparent;
+  --sn-put-bg: transparent;
+  --sn-patch-bg: transparent;
+  --sn-delete-bg: transparent;
+
+  --sn-get-fg: #00cf39;
+  --sn-post-fg: #00a4ff;
+  --sn-put-fg: #00f1f0;
+  --sn-patch-fg: #d16eff;
+  --sn-delete-fg: #ff358d; */
+
+  --sn-get-bg: #00cf3926;
+  --sn-post-bg: #00a4ff26;
+  --sn-put-bg: #00f1f026;
+  --sn-patch-bg: #d16eff26;
+  --sn-delete-bg: #ff358d26;
+
+  --sn-get-fg: #00cf39;
+  --sn-post-fg: #00a4ff;
+  --sn-put-fg: #00f1f0;
+  --sn-patch-fg: #d16eff;
+  --sn-delete-fg: #ff358d;
 
   /* CTA 버튼: 다크는 흰색 채움 */
   --primary: #ffffff;
@@ -212,6 +251,10 @@
 }
 
 @layer base {
+  html,
+  body {
+    @apply overscroll-none;
+  }
   * {
     @apply border-border outline-ring/50;
   }

@@ -23,7 +23,7 @@ export function Footer({ align = "left" }: FooterProps) {
             : "justify-start",
       ].join(" ")}
     >
-      <Logo as="span" className="text-xs text-fg-2" />
+      <Logo as="span" className="text-xs text-fg-2 bg-surface-2 " />
     </footer>
   );
 }

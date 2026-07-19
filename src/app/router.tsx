@@ -47,17 +47,22 @@ export const router = createBrowserRouter([
   },
 
   // 프로젝트 설정
+  // path 를 부모에 둔다. 자식에만 두면 AppLayout 의 useParams() 가 비어
+  // 브레드크럼 링크가 /projects/undefined 로 나간다.
   {
+    path: "/projects/:projectId/settings",
     element: <AppLayout variant="project-settings" />,
-    children: [
-      { path: "/projects/:id/settings", element: <ProjectSettingsPage /> },
-    ],
+    children: [{ index: true, element: <ProjectSettingsPage /> }],
   },
 
   // 스펙 상세 — 3컬럼
   {
+    path: "/projects/:projectId",
     element: <SpecLayout />,
-    children: [{ path: "/projects/:id", element: <SpecDetailPage /> }],
+    children: [
+      { index: true, element: <SpecDetailPage /> },
+      { path: "endpoints/:endpointId", element: <SpecDetailPage /> },
+    ],
   },
 
   // 404 — 어느 레이아웃에도 속하지 않음
