@@ -6,6 +6,12 @@ import { isHttpMethod } from "@/lib/constants";
 import { MOCK_PROJECT_VIEW, getMockEndpointDetail } from "@/lib/mock";
 import { ProjectOverview } from "./ProjectOverview";
 import { cn } from "@/lib/utils";
+import { useSpecCache } from "./useSpecCache";
+import { EndpointDetail } from "./EndpointDetail";
+import type { SpecCache } from "./useSpecCache";
+import type { ProjectView } from "@/lib/types";
+import { useState } from "react";
+import { SpecUpdateBanner } from "./SpecUpdateBanner";
 
 // SpecDetailPage — 3컬럼 본문
 //
@@ -18,33 +24,59 @@ import { cn } from "@/lib/utils";
 export function SpecDetailPage() {
   const { projectId, endpointId } = useParams();
   const projectView = MOCK_PROJECT_VIEW;
+  const cache = useSpecCache(projectView.components);
 
   const detail = endpointId ? getMockEndpointDetail(Number(endpointId)) : null;
 
+  // 배너를 닫은 스냅샷을 기억한다. 그보다 더 새 스냅샷이 오면 다시 뜬다.
+  const [dismissed, setDismissed] = useState<number | null>(null);
+
+  // 상세 응답의 스냅샷이 캐시보다 높으면 그 사이 스펙이 커밋된 것이다.
+  // 미선택 상태에서는 상세 응답이 없어 감지되지 않는다 — 엔드포인트를 열면 드러난다.
+  const staleSnapshotId =
+    detail && detail.snapshotId > projectView.snapshotId
+      ? detail.snapshotId
+      : null;
+  const showBanner = staleSnapshotId !== null && staleSnapshotId !== dismissed;
+
+  // TODO(데이터 단계): queryClient.invalidateQueries 로 교체한다.
+  //   지금은 목이 정적이라 리로드해도 값이 그대로다. 배관이 붙으면 실제로 갱신된다.
+  //   리로드는 Bearer 토큰(useState)도 날린다 — invalidateQueries 는 그러지 않는다.
+  const refresh = () => window.location.reload();
+
   return (
-    <SpecColumns
-      sidebar={<EndpointSidebar endpoints={projectView.endpoints} />}
-      detail={
-        !endpointId ? (
-          <ProjectOverview projectView={projectView} projectId={projectId} />
-        ) : (
-          renderDetail(detail)
-        )
-      }
-      comments={
-        <>
-          <div className="border-b border-border px-3 py-2.5">
-            <span className="text-sm font-medium text-fg-1">댓글</span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-none p-3 pb-8">
-            <p className="text-sm text-fg-3">댓글 목록 (예정)</p>
-          </div>
-          <div className="border-t border-border p-3">
-            <p className="text-sm text-fg-3">댓글 입력 (예정)</p>
-          </div>
-        </>
-      }
-    />
+    <>
+      {showBanner && (
+        <SpecUpdateBanner
+          onRefresh={refresh}
+          onDismiss={() => setDismissed(staleSnapshotId)}
+        />
+      )}
+
+      <SpecColumns
+        sidebar={<EndpointSidebar endpoints={projectView.endpoints} />}
+        detail={
+          !endpointId ? (
+            <ProjectOverview projectView={projectView} projectId={projectId} />
+          ) : (
+            renderDetail(detail, cache, projectView)
+          )
+        }
+        comments={
+          <>
+            <div className="border-b border-border px-3 py-2.5">
+              <span className="text-sm font-medium text-fg-1">댓글</span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-none p-3 pb-8">
+              <p className="text-sm text-fg-3">댓글 목록 (예정)</p>
+            </div>
+            <div className="border-t border-border p-3">
+              <p className="text-sm text-fg-3">댓글 입력 (예정)</p>
+            </div>
+          </>
+        }
+      />
+    </>
   );
 }
 
@@ -52,7 +84,11 @@ export function SpecDetailPage() {
 //
 // 없는 엔드포인트를 404 페이지로 보내지 않는다. 사이드바가 사라져
 // 다른 엔드포인트로 갈 방법이 없어진다. 링크가 상해도 복구 경로를 남긴다.
-function renderDetail(detail: ReturnType<typeof getMockEndpointDetail>) {
+function renderDetail(
+  detail: ReturnType<typeof getMockEndpointDetail>,
+  cache: SpecCache,
+  projectView: ProjectView,
+) {
   if (!detail) {
     return (
       <p className="pt-16 text-center text-sm text-fg-3">
@@ -87,9 +123,17 @@ function renderDetail(detail: ReturnType<typeof getMockEndpointDetail>) {
 
       {detail.summary && <p className="text-sm text-fg-2">{detail.summary}</p>}
 
-      <p className="pt-4 text-sm text-fg-3">
-        parameters, requestBody, responses (11-6 예정)
-      </p>
+      <div className="pt-4">
+        <EndpointDetail
+          key={detail.id}
+          method={detail.method}
+          path={detail.path}
+          operation={detail.operationJson}
+          cache={cache}
+          components={projectView.components}
+          baseUrl={projectView.tryItBaseUrl}
+        />
+      </div>
     </div>
   );
 }

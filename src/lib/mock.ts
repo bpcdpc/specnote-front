@@ -427,7 +427,8 @@ export const MOCK_PROJECT_VIEW: ProjectView = {
   project: MOCK_PROJECT,
   // 원본 스펙의 servers 가 빈 배열이라 자동 추출이 불가능하다.
   // 프로젝트 생성 시 Owner 가 직접 입력한 값이다.
-  tryItBaseUrl: "https://course-mgmt.example.com/api",
+  // tryItBaseUrl: "https://course-mgmt.example.com/api",
+  tryItBaseUrl: "https://jsonplaceholder.typicode.com",
   components: MOCK_COMPONENTS,
   snapshotId: MOCK_SNAPSHOT_ID,
   endpoints: MOCK_ENDPOINTS,
@@ -455,12 +456,44 @@ const ENDPOINT_BY_ID = new Map(MOCK_ENDPOINTS.map((e) => [e.id, e]));
  * GET /api/endpoints/:id 대응. 없는 id 는 null 을 반환한다.
  * "없음"이 정상 케이스이므로 throw 하지 않는다. 404 처리 여부는 호출부가 정한다.
  */
+// export function getMockEndpointDetail(id: number): EndpointDetail | null {
+//   const summary = ENDPOINT_BY_ID.get(id);
+//   const operation = OPERATIONS[id];
+//   if (!summary || !operation) return null;
+
+//   return {
+//     id: summary.id,
+//     path: summary.path,
+//     method: summary.method,
+//     operationId: (operation.operationId as string | null) ?? null,
+//     summary: summary.summary,
+//     tags: summary.tags,
+//     operationJson: operation,
+//     isDeleted: summary.isDeleted,
+//     snapshotId: MOCK_SNAPSHOT_ID,
+//   };
+// }
+
+// 같은 id 에 항상 같은 객체를 돌려준다. 렌더마다 새 객체를 만들면
+// SchemaTree 의 memo 가 무의미해진다(실제 API 는 TanStack Query 가 이 역할을 한다).
+const DETAIL_CACHE = new Map<number, EndpointDetail>();
+
+// [검증용] 이 id 의 상세 응답만 스냅샷을 올려 배너를 띄운다.
+//
+// 실제로는 스펙이 커밋되면 모든 엔드포인트가 새 snapshotId 를 돌려주므로
+// 엔드포인트별로 갈리는 건 현실적이지 않다. 배너 동작만 보려는 임시 장치다.
+// 확인 후 이 상수와 아래 참조를 지운다.
+const MOCK_STALE_ENDPOINT_IDS = new Set<number>([91]);
+
 export function getMockEndpointDetail(id: number): EndpointDetail | null {
+  const cached = DETAIL_CACHE.get(id);
+  if (cached) return cached;
+
   const summary = ENDPOINT_BY_ID.get(id);
   const operation = OPERATIONS[id];
   if (!summary || !operation) return null;
 
-  return {
+  const detail: EndpointDetail = {
     id: summary.id,
     path: summary.path,
     method: summary.method,
@@ -469,12 +502,17 @@ export function getMockEndpointDetail(id: number): EndpointDetail | null {
     tags: summary.tags,
     operationJson: operation,
     isDeleted: summary.isDeleted,
-    snapshotId: MOCK_SNAPSHOT_ID,
+    snapshotId: MOCK_STALE_ENDPOINT_IDS.has(id)
+      ? MOCK_SNAPSHOT_ID + 1
+      : MOCK_SNAPSHOT_ID,
   };
+
+  DETAIL_CACHE.set(id, detail);
+  return detail;
 }
 
 // 11-9 — 응답 snapshotId 가 캐시보다 높다. "스펙 업데이트됨" 배너가 떠야 한다.
-export const MOCK_STALE_ENDPOINT_DETAIL: EndpointDetail = {
-  ...getMockEndpointDetail(12)!,
-  snapshotId: MOCK_SNAPSHOT_ID + 1,
-};
+// export const MOCK_STALE_ENDPOINT_DETAIL: EndpointDetail = {
+//   ...getMockEndpointDetail(12)!,
+//   snapshotId: MOCK_SNAPSHOT_ID + 1,
+// };

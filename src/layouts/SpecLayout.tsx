@@ -10,6 +10,8 @@ import {
   useSpecPanels,
 } from "@/pages/spec-detail/SpecPanelsContext";
 import { MOCK_PROJECT } from "@/lib/mock";
+import { BearerTokenProvider } from "@/pages/spec-detail/BearerTokenContext";
+import { BearerTokenInput } from "@/pages/spec-detail/BearerTokenInput";
 
 const ICON_BUTTON =
   "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-2 " +
@@ -19,7 +21,7 @@ const ICON_BUTTON =
 // 헤더를 포함한 본문 전체를 별도 컴포넌트로 뺀다.
 function SpecLayoutInner() {
   const { projectId } = useParams();
-  const { sidebarOpen, commentsOpen, toggleSidebar, toggleComments } =
+  const { isWide, sidebarOpen, commentsOpen, toggleSidebar, toggleComments } =
     useSpecPanels();
 
   // TODO(데이터 단계): MOCK_PROJECT 를 useProject(id) 응답으로 교체.
@@ -60,7 +62,7 @@ function SpecLayoutInner() {
 
   const headerRight = (
     <>
-      <span className="text-sm text-fg-3">Bearer 입력 (예정)</span>
+      {isWide && <BearerTokenInput className="w-64" />}
       <button
         type="button"
         onClick={toggleComments}
@@ -76,9 +78,12 @@ function SpecLayoutInner() {
 
   return (
     <div className="flex h-dvh flex-col bg-surface-2">
-      <Header left={headerLeft} right={headerRight} />
+      <Header
+        left={headerLeft}
+        right={headerRight}
+        wide={!isWide ? <BearerTokenInput className="w-full" /> : undefined}
+      />
       <Outlet />
-      <Footer align="left" />
     </div>
   );
 }
@@ -90,7 +95,9 @@ function SpecLayoutInner() {
 export function SpecLayout() {
   return (
     <SpecPanelsProvider>
-      <SpecLayoutInner />
+      <BearerTokenProvider>
+        <SpecLayoutInner />
+      </BearerTokenProvider>
     </SpecPanelsProvider>
   );
 }

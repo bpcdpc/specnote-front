@@ -102,7 +102,7 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
 
         <aside
           className={cn(
-            "absolute inset-y-0 left-0 z-40 w-[85vw] max-w-60",
+            "absolute inset-y-0 left-0 z-40 w-full max-w-2xl",
             "overflow-auto overscroll-none bg-surface-1 transition-transform",
             SIDEBAR_PADDING,
             sidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -114,7 +114,7 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
 
         <aside
           className={cn(
-            "absolute inset-y-0 right-0 z-40 flex w-[85vw] max-w-[300px] flex-col",
+            "absolute inset-y-0 right-0 z-40 flex w-full max-w-2xl flex-col",
             "bg-surface-1 transition-transform",
             commentsOpen ? "translate-x-0" : "translate-x-full",
           )}
