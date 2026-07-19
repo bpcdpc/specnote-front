@@ -6,6 +6,7 @@
 | v0.2 | 2026.07.17 FRI | 폴더 구조 개편 반영. 구현 일정을 주 단위로 정리.                                                                                                                                                                |
 | v0.3 | 2026.07.17 FRI | 상태 관리 원칙 명시 — 서버 데이터는 TanStack Query, 전역 Context는 테마·로그인 유저뿐.                                                                                                                          |
 | v0.4 | 2026.07.19 SUN | 구현 순서 갱신(project 화면 목 완료, `lib/types.ts`·`constants.ts` 생성). **Base UI 문법·폼 작성 규칙을 `02-frontend-directories`로, shadcn 컴포넌트 커스텀 내역을 `04-design-tokens`로 이관.** 미결 항목 정리. |
+| v0.5 | 2026.07.20 MON | 11단계 완료 반영. `react-resizable-panels`를 **v4 기준**으로 갱신(API가 v3에서 전부 바뀜), 리사이즈 대상을 양쪽 패널로 정정. 미결에서 **로그아웃 API 줄 삭제**(문서 어디에도 없던 항목), `GET /api/users/me` 부재 추가. 확정된 제약에 **멘션 저장 형식**(markdown 링크 문법) 추가, 와이어프레임 차이 항목 갱신. |
 
 ---
 
@@ -19,12 +20,27 @@
 | 라우팅          | React Router (`createBrowserRouter`)                       |
 | 서버 상태       | TanStack Query                                             |
 | 클라이언트 상태 | `useState` / Context                                       |
-| 리사이즈        | `react-resizable-panels` (오른쪽 댓글 패널만)              |
+| 리사이즈        | `react-resizable-panels` **v4** (좌우 패널 모두)           |
 | 마크다운 렌더   | `react-markdown` (댓글 코드블록 표시용, 저장은 평문)       |
 | 폰트            | Geist(라틴) + Pretendard(한글), CDN                        |
 | 다크모드        | `<html>`에 `.dark` 클래스 토글                             |
 
-> Base UI는 Radix와 문법이 다르다(`asChild` 없음 등). 컴포넌트 작성 규칙은 `02-frontend-directories` 참조.
+> Base UI는 Radix와 문법이 다르다(`asChild` 없음 등). 컴포넌트 작성 규칙은 `05-code-conventions` 참조.
+
+### `react-resizable-panels` v4 주의
+
+v3 예제를 그대로 가져오면 전부 깨진다. 이름이 바뀌었다.
+
+| v3                   | v4            |
+| -------------------- | ------------- |
+| `PanelGroup`         | `Group`       |
+| `PanelResizeHandle`  | `Separator`   |
+| `direction` prop     | `orientation` |
+| `tagName` prop       | 삭제됨        |
+
+- v4는 **px 단위를 지원한다.** v3의 백분율 환산이 필요 없어 `minSize`, `maxSize`를
+  디자인 값 그대로 적을 수 있다.
+- 접기는 `collapsible` + `collapsedSize`가 아니라 패널 `ref`의 명령형 API로 다룬다.
 
 ---
 
@@ -112,7 +128,7 @@ shadcn이 넣은 색 변수를 우리 토큰에 매핑하고 다크 방식·폰�
 
 ```bash
 npm install @tanstack/react-query     # 9단계  — 데이터 배관
-npm install react-resizable-panels    # 11단계 — 3컬럼 리사이즈
+npm install react-resizable-panels    # 11단계 — 3컬럼 리사이즈 (v4)
 npm install react-markdown            # 12단계 — 댓글 코드블록 렌더
 ```
 
@@ -136,7 +152,7 @@ npm install react-markdown            # 12단계 — 댓글 코드블록 렌더
 | 8.5  | 타입 — `lib/constants.ts` · `lib/types.ts`                                   | ✅   |
 | 9    | 데이터 배관 — `lib/api/` · QueryProvider · AuthContext → 목을 API로 교체     | ☐    |
 | 10   | project — 생성 · 설정 · 멤버 (화면 목 완료, API 연결 대기)                   | 🔶   |
-| 11   | spec — 사이드바 · 중앙 상세 · Try it · 갱신 배너 (3컬럼 셸만)                | 🔶   |
+| 11   | spec — 3컬럼 · 사이드바 · 상세 · $ref 캐시 · Try it · 갱신 배너              | ✅   |
 | 12   | comments — 2뎁스 트리 · 멘션 · 리액션 · AI 요약 · 스레드 이동                | ☐    |
 | 13   | 알림 딥링크 · 댓글 하이라이트                                                | ☐    |
 | 14   | 404 페이지 · 파비콘 (404 완료, 파비콘 대기)                                  | 🔶   |
@@ -145,7 +161,10 @@ npm install react-markdown            # 12단계 — 댓글 코드블록 렌더
 
 ## 미결 / 대기
 
-- **로그아웃 API** — 백엔드에 없다. 기능정의서 · API명세서에 추가 필요.
+- **`GET /api/users/me`** — 백엔드에 아직 없다. API 명세서 v0.3에 추가했고 구현 대기 중이다.
+  로그인 응답이 `{ access_token }`뿐이고 `JwtPayload`에 `userName`이 없어
+  프론트가 유저 이름을 얻을 경로가 이것뿐이다. 새로고침 시 토큰 유효성 검증도 겸한다.
+  (백엔드 반영이 끝나면 이 줄을 지운다.)
 - **알림 드롭다운** — `UserMenu`에 자리표시만 있다. 백엔드 알림 API + 딥링크(13단계)와 함께 붙인다.
 - **파비콘** — `{S}` SVG는 폰트가 없는 환경에서 fallback 렌더된다. 정확한 자형이 필요하면
   Geist 글리프를 path로 변환해야 한다(수동 작업).
@@ -157,11 +176,33 @@ npm install react-markdown            # 12단계 — 댓글 코드블록 렌더
 **댓글은 평문 저장** (`content: string`). 리치 에디터를 쓰지 않는다.
 백엔드 `Comment.content`가 평문 한 필드이고 FR-5.4가 "순수 텍스트 댓글 구조만 유지"로 못 박았다.
 
-- `@`/`#` 멘션은 본문 인라인이 아니라 `mentionedUserIds[]` / `mentionedEndpointIds[]` 별도 배열.
 - 코드블록은 렌더 시 `react-markdown`으로 표시만 한다. 저장 형식은 안 바뀐다.
 - 이미지 · 동영상 첨부는 스코프 밖.
 
+**멘션 저장 형식 — markdown 링크 문법**
+
+멘션은 **본문 인라인**에 남고, 검증된 대상 목록은 별도 배열로도 온다. 둘 다 쓴다.
+
+```
+[@희경](mention:12) 확인 부탁드려요. [GET /courses/:id](endpoint:5) 쪽 문제로 보입니다.
+```
+
+- 팀원 멘션 `[@userName](mention:userId)`, 엔드포인트 멘션 `[method path](endpoint:endpointId)`.
+- `react-markdown`의 `components.a`를 갈아끼워 `href` 스킴으로 칩/일반 링크를 가른다.
+- `urlTransform`으로 `mention:` `endpoint:` 두 스킴만 통과시킨다.
+  기본값은 아는 스킴 외를 빈 문자열로 지워서, 두지 않으면 링크가 사라진다.
+- 렌더 시 `memberMentions` / `endpointMentions` 배열에 없는 id면 칩으로 만들지 않고
+  글자만 평문으로 떨군다. 사용자가 손으로 쳐 넣은 가짜 멘션이 살아나지 않는다.
+- **raw HTML(`<span data-id>`)을 쓰지 않는 이유**: `rehype-raw`로 raw HTML을 켜야 하고
+  그러면 사용자 입력 HTML이 DOM에 그대로 들어간다. 막으려면 `rehype-sanitize`와
+  allowlist 관리가 붙는다. 의존성 2개와 보안 표면을 늘리는 값이 없다.
+- **식별자는 `userId`다.** 이메일은 PII고 DOM에 노출된다.
+
 **와이어프레임 v0.1과의 차이**
 
-- 와이어프레임은 양쪽 사이드바 리사이즈 → 실제는 **왼쪽 고정 + 오른쪽만 리사이즈**.
+- 와이어프레임은 양쪽 사이드바 리사이즈 → **구현이 그쪽으로 돌아왔다.** 차이가 아니다.
+  남은 차이는 접기와 `lg` 오버레이로, 와이어프레임에는 둘 다 없다.
 - 와이어프레임은 프로젝트 생성/설정이 한 화면(2컬럼) → 실제는 **두 화면, 각 1컬럼**.
+- 와이어프레임은 헤더 좌측이 `←` 뒤로가기 → 실제는 **브레드크럼**.
+- 와이어프레임은 댓글 이동이 패널 헤더의 엔드포인트 단위 액션 → **이쪽이 맞다.**
+  백엔드가 댓글 단위로 만들었던 것을 엔드포인트 단위로 되돌린다(FR-12 v0.7).

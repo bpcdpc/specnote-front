@@ -12,6 +12,7 @@
 // TODO(데이터 단계): 이 파일 전체를 lib/api 호출로 교체하고 삭제한다.
 
 import type {
+  CommentTree,
   EndpointDetail,
   EndpointSummary,
   ProjectSummary,
@@ -447,7 +448,138 @@ export const MOCK_PROJECT_VIEW_AS_MEMBER: ProjectView = {
 };
 
 // ---------------------------------------------------------------------------
-// 5. 조회 헬퍼
+// 5. 댓글 — GET /api/endpoints/:id/comments
+//
+// 대상은 id 16 (post /enrollments) 하나다. UC-5, UC-6 의 사용 예시가 이 엔드포인트다.
+// 나머지 엔드포인트는 빈 배열을 돌려준다 — 빈 상태 검증용.
+//
+// TODO(데이터 단계): useComments(endpointId) 로 교체.
+// ---------------------------------------------------------------------------
+
+// 멘션·작성자로 등장하는 팀원. 전역 AI 계정은 초대·멘션 대상이 아니다(UC-13).
+const MOCK_MEMBERS: Record<string, PublicUser> = {
+  binyoung: MOCK_CURRENT_USER,
+  huikyung: { id: 2, userName: "희경", email: "huikyung@example.com" },
+  hyebin: { id: 3, userName: "혜빈", email: "hyebin@example.com" },
+  ai: { id: 99, userName: "SpecNote AI", email: "ai@specnote.local" },
+};
+
+const COMMENT_ENDPOINT_ID = 16;
+
+// 리액션 4종: DONE(처리됨) / CHECKING(확인중) / ACK(알겠음) / BEST(최고)
+const MOCK_COMMENTS: CommentTree[] = [
+  // 1. 일반 스레드 — 질문 + 대댓글 2개. 수정 이력과 멘션이 섞여 있다.
+  {
+    id: 101,
+    endpointId: COMMENT_ENDPOINT_ID,
+    parentId: null,
+    content:
+      "정원이 꽉 찼을 때 에러 코드가 명세에 없는데 어떻게 처리되나요?\n지금은 500이 떨어져서 프론트에서 구분이 안 됩니다.",
+    isDeleted: false,
+    author: MOCK_MEMBERS.binyoung,
+    createdAt: "2026-07-19T02:14:00.000Z",
+    updatedAt: "2026-07-19T02:14:00.000Z",
+    reactions: [
+      { type: "CHECKING", count: 2, reactedByMe: false },
+      { type: "ACK", count: 1, reactedByMe: true },
+    ],
+    memberMentions: [],
+    endpointMentions: [],
+    replies: [
+      {
+        id: 102,
+        endpointId: COMMENT_ENDPOINT_ID,
+        parentId: 101,
+        // 수정된 댓글 — createdAt 과 updatedAt 이 다르다.
+        content: "423 Locked 로 변경했습니다. 명세도 같이 올려두겠습니다.",
+        isDeleted: false,
+        author: MOCK_MEMBERS.hyebin,
+        createdAt: "2026-07-19T02:31:00.000Z",
+        updatedAt: "2026-07-19T03:05:00.000Z",
+        reactions: [{ type: "DONE", count: 3, reactedByMe: true }],
+        memberMentions: [],
+        endpointMentions: [],
+      },
+      {
+        id: 103,
+        endpointId: COMMENT_ENDPOINT_ID,
+        parentId: 101,
+        // 멘션 2종 — 멤버와 엔드포인트가 한 댓글에 같이 들어간다.
+        content:
+          "@희경 수강 취소 쪽도 같은 문제 있어요. #DELETE /enrollments/{id} 확인 부탁드립니다.",
+        isDeleted: false,
+        author: MOCK_MEMBERS.binyoung,
+        createdAt: "2026-07-19T03:40:00.000Z",
+        updatedAt: "2026-07-19T03:40:00.000Z",
+        reactions: [],
+        memberMentions: [{ userId: 2, userName: "희경" }],
+        endpointMentions: [
+          { endpointId: 19, path: "/enrollments/{id}", method: "delete" },
+        ],
+      },
+    ],
+  },
+
+  // 2. 소프트 삭제 — content 는 서버에서 마스킹되고 작성자·시간·대댓글 구조는 남는다(FR-5.3).
+  //    리액션도 유지된다.
+  {
+    id: 104,
+    endpointId: COMMENT_ENDPOINT_ID,
+    parentId: null,
+    content: "삭제된 댓글입니다",
+    isDeleted: true,
+    author: MOCK_MEMBERS.huikyung,
+    createdAt: "2026-07-19T05:02:00.000Z",
+    updatedAt: "2026-07-19T05:20:00.000Z",
+    reactions: [{ type: "ACK", count: 1, reactedByMe: false }],
+    memberMentions: [],
+    endpointMentions: [],
+    replies: [
+      {
+        id: 105,
+        endpointId: COMMENT_ENDPOINT_ID,
+        parentId: 104,
+        content: "네 그 부분은 다음 스프린트로 넘기죠.",
+        isDeleted: false,
+        author: MOCK_MEMBERS.hyebin,
+        createdAt: "2026-07-19T05:11:00.000Z",
+        updatedAt: "2026-07-19T05:11:00.000Z",
+        reactions: [],
+        memberMentions: [],
+        endpointMentions: [],
+      },
+    ],
+  },
+
+  // 3. AI 요약 — 구조상 일반 최상위 댓글과 같다. 대댓글·리액션이 달릴 수 있으나
+  //    사람 사용자의 수정·삭제 대상은 아니다(UC-13).
+  {
+    id: 106,
+    endpointId: COMMENT_ENDPOINT_ID,
+    parentId: null,
+    content:
+      "**논의 요약**\n\n- 정원 초과 시 응답 코드가 명세에 없어 프론트에서 분기 불가\n- 409 Conflict 검토 후 423 Locked 로 확정\n- 수강 취소 엔드포인트도 동일 이슈로 확인 대기",
+    isDeleted: false,
+    author: MOCK_MEMBERS.ai,
+    createdAt: "2026-07-19T06:00:00.000Z",
+    updatedAt: "2026-07-19T06:00:00.000Z",
+    reactions: [{ type: "BEST", count: 2, reactedByMe: false }],
+    memberMentions: [],
+    endpointMentions: [],
+    replies: [],
+  },
+];
+
+/**
+ * GET /api/endpoints/:id/comments 대응.
+ * 목 데이터가 있는 엔드포인트는 하나뿐이고 나머지는 빈 배열이다.
+ */
+export function getMockComments(endpointId: number): CommentTree[] {
+  return endpointId === COMMENT_ENDPOINT_ID ? MOCK_COMMENTS : [];
+}
+
+// ---------------------------------------------------------------------------
+// 6. 조회 헬퍼
 // ---------------------------------------------------------------------------
 
 const ENDPOINT_BY_ID = new Map(MOCK_ENDPOINTS.map((e) => [e.id, e]));
@@ -510,9 +642,3 @@ export function getMockEndpointDetail(id: number): EndpointDetail | null {
   DETAIL_CACHE.set(id, detail);
   return detail;
 }
-
-// 11-9 — 응답 snapshotId 가 캐시보다 높다. "스펙 업데이트됨" 배너가 떠야 한다.
-// export const MOCK_STALE_ENDPOINT_DETAIL: EndpointDetail = {
-//   ...getMockEndpointDetail(12)!,
-//   snapshotId: MOCK_SNAPSHOT_ID + 1,
-// };

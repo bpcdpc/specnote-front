@@ -3,6 +3,7 @@
 | 버전 | 일시           | 변경 내용                                                                                                                                                |
 | ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | v0.1 | 2026.07.19 SUN | 최초 작성. 흩어져 있던 코드 규약을 모음 — Base UI 문법(`01`에서), 폼 작성 규칙(`01`에서), `cn()` 병합, enum·타입 표기(`02`에서), heading 계층(`03`에서). |
+| v0.2 | 2026.07.20 MON | 11단계 구현 결과 반영. `HTTP_METHODS`를 소문자로 변경(OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다), `isHttpMethod` 위치를 `types.ts` → `constants.ts`로 정정, 좁히기 예제에서 `toUpperCase()` 정규화 제거, heading 계층표에 `h3`의 화면 내 구획 제목 용도 추가, TS 좁히기 함정 절 신설(옵셔널 체이닝 결과는 원본을 좁히지 않는다). |
 
 > 이 문서는 **"어떻게 쓰는가"** 를 다룬다.
 > 무엇을 어디에 두는가는 `02-frontend-directories`, 화면 구조는 `03-frontend-layouts`,
@@ -75,6 +76,7 @@ className={cn("text-fg-1 text-4xl", className)}
 | `h1` | 헤더 좌측 텍스트  | `AppLayout` · `SpecLayout` 헤더 조립부 |
 | `h2` | 화면 상단 제목    | `PageHeading` (모든 사용처)            |
 | `h3` | 목록 아이템 제목  | `ProjectCard` 등                       |
+| `h3` | 화면 내 구획 제목 | Parameters / Request Body / Responses  |
 
 - `<span>`으로 제목처럼 보이게 하지 않는다. 스크린 리더가 heading 목록으로 탐색한다.
 - 장식용 아이콘에는 `aria-hidden="true"`를 붙인다.
@@ -100,9 +102,19 @@ export type REACTION_TYPE = (typeof REACTION_TYPES)[number];
 
 export type NOTIFICATION_TYPE = "INVITED" | "MENTIONED";
 
-export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
+export const HTTP_METHODS = ["get", "post", "put", "patch", "delete"] as const;
 export type HTTP_METHOD = (typeof HTTP_METHODS)[number];
+
+export function isHttpMethod(m: string): m is HTTP_METHOD {
+  return (HTTP_METHODS as readonly string[]).includes(m);
+}
 ```
+
+- **`HTTP_METHODS`는 소문자다.** OAS Path Item Object의 키가 소문자이고
+  `spec-extractor`가 그걸 그대로 저장한다. 대문자로 두면 저장값과 상수가 어긋나
+  비교할 때마다 정규화를 끼워야 한다. 대문자는 **표시할 때만** 쓴다(`uppercase` 유틸).
+- **`isHttpMethod`는 `types.ts`가 아니라 `constants.ts`에 둔다.**
+  가드가 `HTTP_METHODS` 배열에서 파생되므로 배열과 같은 파일에 있어야 한다.
 
 - `as const`는 리터럴 타입으로 좁히고 읽기 전용으로 고정한다.
 - `(typeof X)[number]`는 배열 요소 타입들을 유니온으로 뽑는다.
@@ -126,19 +138,39 @@ export type HTTP_METHOD = (typeof HTTP_METHODS)[number];
 
 타입 가드로 렌더 직전에 좁히고, 벗어난 값은 폴백한다.
 
-```ts
-export function isHttpMethod(m: string): m is HTTP_METHOD {
-  return (HTTP_METHODS as readonly string[]).includes(m);
-}
-```
-
 ```tsx
 if (isHttpMethod(method)) return <MethodBadge method={method} />;
-return <FallbackBadge>{method.toUpperCase()}</FallbackBadge>;
+return <FallbackBadge>{method}</FallbackBadge>;
 ```
+
+가드는 `constants.ts`에 있다(위 참고). 표시용 대문자 변환은 뱃지 컴포넌트가
+`uppercase` 클래스로 처리하므로 호출부에서 `toUpperCase()`를 부르지 않는다.
 
 컴포넌트는 좁은 타입만 받는다. 좁히는 책임은 **호출부**에 둔다 — 그래야 컴포넌트가 단순해지고
 "모르는 값일 때 뭘 보여줄지"를 화면마다 다르게 정할 수 있다.
+
+---
+
+## TS 좁히기 함정
+
+**옵셔널 체이닝 결과를 가드에 넘겨도 원본은 좁혀지지 않는다.**
+
+```ts
+// ❌ a는 여전히 unknown이다
+if (isObject(a?.b)) {
+  doSomething(a.b); // a가 unknown이라 에러
+}
+
+// ✅ 결과를 변수로 받아 그 변수를 좁힌다
+const b = isObject(a) ? a.b : undefined;
+if (isObject(b)) {
+  doSomething(b);
+}
+```
+
+타입 가드는 **인자로 넘긴 표현식 하나**만 좁힌다. `a?.b`를 넘기면 `a?.b`가 좁혀질 뿐
+`a`는 그대로다. `$ref` 해석이나 스키마 순회처럼 `unknown`을 여러 단계 파고드는 코드에서
+반복해 걸린다. 단계마다 변수로 받아 내려간다.
 
 ---
 
