@@ -16,14 +16,8 @@ export function ProjectSettingsPage() {
     <div className="mx-auto max-w-3xl px-8 py-6">
       <div className="flex flex-col gap-10 py-8">
         <PageHeading icon={Settings} title="프로젝트 설정" />
-
-        <div className="flex flex-col gap-8">
-          <SpecJsonUrlField />
-          <TryItBaseUrlField />
-        </div>
-
-        <hr className="border-border" />
-
+        <SpecJsonUrlField />
+        <TryItBaseUrlField />
         <MemberList />
       </div>
     </div>

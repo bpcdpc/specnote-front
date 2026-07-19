@@ -3,26 +3,27 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/app/ThemeContext";
+import { MOCK_CURRENT_USER } from "@/lib/mock";
 
 // UserMenu — 헤더 우측 유저 메뉴
 //
-// 아바타 클릭 → 드롭다운(이름 · 이메일 · 알림 · 테마 토글 · 로그아웃).
+// 아바타 클릭 → 드롭다운(이름, 이메일, 알림, 테마 토글, 로그아웃).
 //
 // TODO(데이터 단계):
-//   - 유저(이름·이메일·이니셜)를 useAuth() 로 교체
+//   - MOCK_CURRENT_USER 를 useAuth().user 로 교체
 //   - 알림 목록·미확인 개수를 useNotifications() 로 교체 (빨간 점 표시)
 //   - 로그아웃을 lib/api/auth 의 logout() 호출로 교체
 // 지금은 목. 테마 토글만 실제 동작한다.
 export function UserMenu() {
   const { theme, toggleTheme } = useTheme();
 
-  // 목 유저
-  const user = { name: "빈영", email: "binyoung@example.com", initial: "빈" };
+  const user = MOCK_CURRENT_USER;
+  // 이니셜은 백엔드에 없다. userName 에서 파생시킨다.
+  const initial = user.userName.charAt(0);
 
   return (
     <DropdownMenu>
@@ -32,14 +33,14 @@ export function UserMenu() {
         aria-label="유저 메뉴"
       >
         <Avatar className="size-8">
-          <AvatarFallback className="text-xs">{user.initial}</AvatarFallback>
+          <AvatarFallback className="text-xs">{initial}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
-        {/* 이름 · 이메일 — 단순 표시 (Label 컴포넌트 아님) */}
+        {/* 이름, 이메일 — 단순 표시 (Label 컴포넌트 아님) */}
         <div className="flex flex-col gap-0.5 px-2 py-1.5">
-          <span className="text-sm font-medium text-fg-1">{user.name}</span>
+          <span className="text-sm font-medium text-fg-1">{user.userName}</span>
           <span className="text-xs text-fg-3">{user.email}</span>
         </div>
 

@@ -79,8 +79,8 @@ const MOCK_PROJECTS: ProjectSummary[] = [
 ];
 
 export function DashboardPage() {
-  // const projects = MOCK_PROJECTS;
-  const projects: ProjectSummary[] = [];
+  const projects = MOCK_PROJECTS;
+  // const projects: ProjectSummary[] = [];
 
   return (
     <>
