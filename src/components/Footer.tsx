@@ -1,23 +1,29 @@
+import { Logo } from "./Logo";
+
 type FooterProps = {
-  align?: "left" | "center";
+  align?: "center" | "right" | "left";
 };
 
-export const FOOTER_HEIGHT = 32; // px — 본문 하단 패딩 계산용
-
-// 화면 하단에 고정된 작은 글씨.
-// 배경 없음 · 투명 · pointer-events-none → 아래 요소의 클릭을 막지 않는다.
-// 클릭이 통과하므로 링크를 두지 않는다.
+// Footer — 하단 고정, 투명
+//
+// 배경 없음 · pointer-events-none — 아래 요소의 클릭을 막지 않는다.
+// 링크는 두지 않는다(클릭이 통과하므로).
+// 본문은 이 높이(약 32px)만큼 pb 를 확보해 콘텐츠가 가리지 않게 한다.
+//
+// 로고는 장식이므로 as="span" — h1 을 쓰면 페이지에 제목이 둘 생긴다.
 export function Footer({ align = "left" }: FooterProps) {
   return (
     <footer
       className={[
-        "pointer-events-none fixed inset-x-0 bottom-0 z-60",
-        "flex h-8 items-center px-4",
-        "text-xs text-fg-3",
-        align === "center" ? "justify-center" : "justify-start",
+        "pointer-events-none fixed bottom-0 left-0 z-40 flex h-8 w-full items-center px-4",
+        align === "center"
+          ? "justify-center"
+          : align === "right"
+            ? "justify-end"
+            : "justify-start",
       ].join(" ")}
     >
-      <span>SpecNote</span>
+      <Logo as="span" className="text-xs text-fg-2" />
     </footer>
   );
 }

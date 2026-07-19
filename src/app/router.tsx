@@ -1,19 +1,31 @@
 import { createBrowserRouter } from "react-router-dom";
-import { AuthLayout } from "./AuthLayout";
-import { ProjectLayout } from "./ProjectLayout";
-import { SpecLayout } from "./SpecLayout";
-import {
-  LoginPage,
-  SignupPage,
-  DashboardPage,
-  ProjectFormPage,
-  SpecDetailPage,
-  NotFoundPage,
-} from "./StubPages";
 
-// 라우트 5개 + 404.
-// 인증 가드(RequireAuth)는 9단계에서 ProjectLayout, SpecLayout을 감싸며 추가한다.
+import { AuthLayout } from "@/layouts/AuthLayout";
+import { AppLayout } from "@/layouts/AppLayout";
+import { SpecLayout } from "@/layouts/SpecLayout";
+
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { SignupPage } from "@/pages/auth/SignupPage";
+import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import { ProjectCreatePage } from "@/pages/project-form/ProjectCreatePage";
+import { ProjectSettingsPage } from "@/pages/project-form/ProjectSettingsPage";
+import { SpecDetailPage } from "@/pages/spec-detail/SpecDetailPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
+
+// 라우트 정의
+//
+// 레이아웃 3종이 각 화면을 감싼다.
+//   AuthLayout — 헤더 없음, 중앙 정렬 (로그인/회원가입)
+//   AppLayout  — 헤더 + 흐름 + 푸터. variant로 헤더 좌측 형식 지정
+//   SpecLayout — 헤더 + 3컬럼 (h-dvh 고정)
+//
+// 헤더는 레이아웃이 그린다. 페이지는 콘텐츠(Outlet)만 채운다.
+// AppLayout variant:
+//   dashboard        → "Dashboard" 텍스트
+//   project-create   → ← + "새 프로젝트" 텍스트
+//   project-settings → ← + 프로젝트명
 export const router = createBrowserRouter([
+  // 인증 — 로그인 안 한 사용자
   {
     element: <AuthLayout />,
     children: [
@@ -21,20 +33,33 @@ export const router = createBrowserRouter([
       { path: "/signup", element: <SignupPage /> },
     ],
   },
+
+  // 대시보드 — 프로젝트 목록
   {
-    element: <ProjectLayout />,
+    element: <AppLayout variant="dashboard" />,
+    children: [{ path: "/", element: <DashboardPage /> }],
+  },
+
+  // 프로젝트 생성
+  {
+    element: <AppLayout variant="project-create" />,
+    children: [{ path: "/projects/new", element: <ProjectCreatePage /> }],
+  },
+
+  // 프로젝트 설정
+  {
+    element: <AppLayout variant="project-settings" />,
     children: [
-      { path: "/", element: <DashboardPage /> },
-      { path: "/projects/new", element: <ProjectFormPage /> },
-      { path: "/projects/:id/settings", element: <ProjectFormPage /> },
+      { path: "/projects/:id/settings", element: <ProjectSettingsPage /> },
     ],
   },
+
+  // 스펙 상세 — 3컬럼
   {
     element: <SpecLayout />,
     children: [{ path: "/projects/:id", element: <SpecDetailPage /> }],
   },
-  {
-    element: <ProjectLayout />,
-    children: [{ path: "*", element: <NotFoundPage /> }],
-  },
+
+  // 404 — 어느 레이아웃에도 속하지 않음
+  { path: "*", element: <NotFoundPage /> },
 ]);

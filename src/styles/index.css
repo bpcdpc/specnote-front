@@ -1,5 +1,4 @@
-/* 폰트: 라틴 Geist(Google Fonts) + 한글 Pretendard(jsDelivr CDN).
-   @import는 파일 최상단에 있어야 적용된다. */
+/* 폰트: 라틴 Geist(Google Fonts) + 한글 Pretendard(jsDelivr CDN). */
 @import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap");
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
 
@@ -7,57 +6,60 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* 다크모드: .dark 클래스로 토글 (shadcn 표준).
-   ThemeContext가 <html>에 .dark 를 붙였다 뗀다. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ══════════════════════════════════════════════════════════
    라이트 (기본)
    ══════════════════════════════════════════════════════════ */
 :root {
-  /* ── 표면 ── */
-  --sn-surface-1: #ffffff; /* 카드 · 헤더 · 패널 */
-  --sn-surface-2: #fafafa; /* 페이지 배경 */
-  --sn-surface-3: #f2f2f2; /* 선택된 항목 · 살짝 띄운 면 */
-  --sn-hover: #f0f0f0; /* ghost 버튼 · 목록 행 호버 */
+  /* ── 표면: 페이지 = 카드 = 흰색. 구분은 보더로만 ── */
+  --sn-surface-1: #ffffff; /* 카드 / 헤더 / 패널 */
+  --sn-surface-2: #ffffff; /* 페이지 배경 */
+  --sn-surface-3: #f2f2f2; /* 선택된 항목 */
+
+  /* ── 호버 (두 단계) ── */
+  --sn-hover-ghost: #f7f7f7; /* ghost / 드롭다운 / 카드 (아주 옅게) */
+  --sn-hover-icon: #f0f0f0; /* 아이콘 버튼 / 목록 행 (진하게) */
 
   /* ── 텍스트 ── */
-  --sn-fg-1: #171717; /* 본문 */
-  --sn-fg-2: #666666; /* 보조 */
-  --sn-fg-3: #8f8f8f; /* 흐림 · 캡션 */
+  --sn-fg-1: #171717;
+  --sn-fg-2: #666666;
+  --sn-fg-3: #8f8f8f;
 
   /* ── 보더 ── */
-  --sn-border: #eaeaea;
+  --sn-border: #d4d4d4;
+  --sn-input-border: #dcdcdc; /* 인풋용 — 버튼 보더보다 옅게 */
+  --sn-input-bg: #fafafa; /* 인풋 배경 — 흰 배경에 살짝 */
 
-  /* ── 강조 (Vercel Blue) ──
-     최소한으로만 쓴다: primary 버튼 · 포커스 링 · 링크/멘션 · 선택 표시.
-     아바타 · 보조 버튼 · 카드 강조에는 쓰지 않는다. */
+  /* ── 강조 (Vercel Blue) — 포커스 링 / 링크·멘션 / 선택 표시 / OWNER 뱃지 ──
+     3단계: subtle(흐림 배경) / muted(중간) / strong(원색). */
   --sn-accent: #0070f3;
   --sn-accent-hover: #0060d9;
+  --sn-accent-subtle: #e8f0fe; /* 흐림 — 뱃지·태그 배경 */
+  --sn-accent-muted: #7aa7f0; /* 중간 — 보조 강조 */
 
-  /* ── 메서드 뱃지: 라이트는 솔리드 (흰 배경에서 대비 확보) ── */
-  --sn-get-fg: #ffffff;
-  --sn-get-bg: #52ab1f;
-  --sn-get-border: #52ab1f;
+  /* ── 메서드 뱃지: 코드 토큰 톤 — 텍스트만(배경·보더 없음) ── */
+  --sn-get-fg: #4a9c2d;
+  --sn-get-bg: transparent;
+  --sn-get-border: transparent;
+  --sn-post-fg: #2b7fd4;
+  --sn-post-bg: transparent;
+  --sn-post-border: transparent;
+  --sn-put-fg: #c47f1a;
+  --sn-put-bg: transparent;
+  --sn-put-border: transparent;
+  --sn-patch-fg: #0f9d76;
+  --sn-patch-bg: transparent;
+  --sn-patch-border: transparent;
+  --sn-delete-fg: #d83b3a;
+  --sn-delete-bg: transparent;
+  --sn-delete-border: transparent;
 
-  --sn-post-fg: #ffffff;
-  --sn-post-bg: #2b8fe6;
-  --sn-post-border: #2b8fe6;
+  /* ── CTA 버튼: 라이트는 검정 채움 ── */
+  --primary: #000000;
+  --primary-foreground: #ffffff;
 
-  --sn-put-fg: #ffffff;
-  --sn-put-bg: #e08c1a;
-  --sn-put-border: #e08c1a;
-
-  --sn-patch-fg: #ffffff;
-  --sn-patch-bg: #12b48c;
-  --sn-patch-border: #12b48c;
-
-  --sn-delete-fg: #ffffff;
-  --sn-delete-bg: #ef5350;
-  --sn-delete-border: #ef5350;
-
-  /* ── shadcn 변수 → SpecNote 토큰 매핑 ──
-     shadcn 컴포넌트가 코드 수정 없이 우리 색을 따르게 한다. */
+  /* ── shadcn 매핑 ── */
   --background: var(--sn-surface-2);
   --foreground: var(--sn-fg-1);
   --card: var(--sn-surface-1);
@@ -65,126 +67,111 @@
   --popover: var(--sn-surface-1);
   --popover-foreground: var(--sn-fg-1);
 
-  --primary: var(--sn-accent);
-  --primary-foreground: #ffffff;
-
   --secondary: var(--sn-surface-3);
   --secondary-foreground: var(--sn-fg-1);
-
   --muted: var(--sn-surface-3);
   --muted-foreground: var(--sn-fg-2);
 
-  /* shadcn의 accent = "은은한 hover 배경" (강조색이 아니다) */
-  --accent: var(--sn-hover);
+  --accent: var(--sn-hover-ghost);
   --accent-foreground: var(--sn-fg-1);
 
-  --destructive: var(--sn-delete-bg);
+  --destructive: #d83b3a;
 
   --border: var(--sn-border);
   --input: var(--sn-border);
+  --input-border: var(--sn-input-border);
+  --input-bg: var(--sn-input-bg);
   --ring: var(--sn-accent);
 
   --sidebar: var(--sn-surface-1);
   --sidebar-foreground: var(--sn-fg-1);
   --sidebar-primary: var(--sn-accent);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--sn-hover);
+  --sidebar-accent: var(--sn-hover-ghost);
   --sidebar-accent-foreground: var(--sn-fg-1);
   --sidebar-border: var(--sn-border);
   --sidebar-ring: var(--sn-accent);
 
-  /* radius 3px 통일 (아바타만 원형) */
-  --radius: 3px;
+  --radius: 8px;
 }
 
 /* ══════════════════════════════════════════════════════════
    다크 (.dark)
    ══════════════════════════════════════════════════════════ */
 .dark {
-  --sn-surface-1: #0a0a0a;
+  --sn-surface-1: #000000;
   --sn-surface-2: #000000;
-  --sn-surface-3: #141414;
-  --sn-hover: #1c1c1c;
+  --sn-surface-3: #242424;
+
+  --sn-hover-ghost: #141414;
+  --sn-hover-icon: #1a1a1a;
 
   --sn-fg-1: #ededed;
   --sn-fg-2: #a1a1a1;
   --sn-fg-3: #737373;
 
-  --sn-border: #1f1f1f;
+  --sn-border: #2b2b2b;
+  --sn-input-border: #1f1f1f; /* 인풋용 — 버튼 보더보다 옅게 */
+  --sn-input-bg: #0d0d0d; /* 인풋 배경 — 순검정 위 살짝 */
 
   --sn-accent: #0070f3;
   --sn-accent-hover: #3291ff;
+  --sn-accent-subtle: #10243f; /* 흐림 배경 — 스샷 톤(짙은 남색) */
+  --sn-accent-muted: #2d5a9e; /* 중간 */
 
-  /* 메서드 뱃지: 다크는 아웃라인 (밝은 글자 + 옅은 배경 + 보더).
-     블랙 배경에서 솔리드는 혼자 튄다. */
-  --sn-get-fg: #8fc75c;
-  --sn-get-bg: rgba(99, 153, 34, 0.13);
-  --sn-get-border: rgba(99, 153, 34, 0.32);
+  /* 메서드 뱃지: 다크는 밝은 코드 토큰 컬러 (bg·border는 :root의 transparent 상속) */
+  --sn-get-fg: #5cc264;
+  --sn-post-fg: #5aa9ff;
+  --sn-put-fg: #e0a35c;
+  --sn-patch-fg: #4ec9b0;
+  --sn-delete-fg: #ff6b81;
 
-  --sn-post-fg: #6fb4e8;
-  --sn-post-bg: rgba(55, 138, 221, 0.13);
-  --sn-post-border: rgba(55, 138, 221, 0.32);
+  /* CTA 버튼: 다크는 흰색 채움 */
+  --primary: #ffffff;
+  --primary-foreground: #000000;
 
-  --sn-put-fg: #d99b45;
-  --sn-put-bg: rgba(186, 117, 23, 0.13);
-  --sn-put-border: rgba(186, 117, 23, 0.34);
-
-  --sn-patch-fg: #4fc3a1;
-  --sn-patch-bg: rgba(29, 158, 117, 0.13);
-  --sn-patch-border: rgba(29, 158, 117, 0.32);
-
-  --sn-delete-fg: #ef7a79;
-  --sn-delete-bg: rgba(226, 75, 74, 0.13);
-  --sn-delete-border: rgba(226, 75, 74, 0.32);
-
-  /* 다크에서 값이 달라야 하는 shadcn 변수만 재지정.
-     나머지는 --sn-* 를 참조하므로 자동 반영된다. */
   --destructive: #e24b4a;
 }
 
 /* ══════════════════════════════════════════════════════════
    Tailwind 유틸 등록
-   inline: 유틸이 값을 박지 않고 var()를 참조 → 런타임 다크 전환.
    ══════════════════════════════════════════════════════════ */
 @theme inline {
-  /* SpecNote: bg-surface-1, text-fg-2, bg-hover 등 */
   --color-surface-1: var(--sn-surface-1);
   --color-surface-2: var(--sn-surface-2);
   --color-surface-3: var(--sn-surface-3);
-  --color-hover: var(--sn-hover);
+  --color-hover-ghost: var(--sn-hover-ghost);
+  --color-hover-icon: var(--sn-hover-icon);
 
   --color-fg-1: var(--sn-fg-1);
   --color-fg-2: var(--sn-fg-2);
   --color-fg-3: var(--sn-fg-3);
 
+  /* accent — hover + 3단계(subtle/muted/strong) */
   --color-accent-hover: var(--sn-accent-hover);
+  --color-accent-subtle: var(--sn-accent-subtle); /* 흐림 — 뱃지·태그 배경 */
+  --color-accent-muted: var(--sn-accent-muted); /* 중간 — 보조 강조 */
+  --color-accent-strong: var(--sn-accent); /* 원색 — 글자·아이콘·보더 */
 
-  /* 메서드 뱃지: text-get-fg / bg-get-bg / border-get-border */
   --color-get-fg: var(--sn-get-fg);
   --color-get-bg: var(--sn-get-bg);
   --color-get-border: var(--sn-get-border);
-
   --color-post-fg: var(--sn-post-fg);
   --color-post-bg: var(--sn-post-bg);
   --color-post-border: var(--sn-post-border);
-
   --color-put-fg: var(--sn-put-fg);
   --color-put-bg: var(--sn-put-bg);
   --color-put-border: var(--sn-put-border);
-
   --color-patch-fg: var(--sn-patch-fg);
   --color-patch-bg: var(--sn-patch-bg);
   --color-patch-border: var(--sn-patch-border);
-
   --color-delete-fg: var(--sn-delete-fg);
   --color-delete-bg: var(--sn-delete-bg);
   --color-delete-border: var(--sn-delete-border);
 
-  /* 폰트: Geist(라틴) → Pretendard(한글) → 시스템 */
   --font-sans: "Geist", "Pretendard", system-ui, sans-serif;
   --font-heading: var(--font-sans);
 
-  /* shadcn 색 유틸 (bg-primary, text-muted-foreground 등) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -202,6 +189,8 @@
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-input-bg: var(--input-bg);
   --color-ring: var(--ring);
 
   --color-sidebar: var(--sidebar);
@@ -213,14 +202,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* radius 3px 통일 — sm/md/lg/xl 모두 같은 값.
-     shadcn 컴포넌트가 rounded-md 등을 써도 3px로 나온다. */
-  --radius-sm: 3px;
-  --radius-md: 3px;
-  --radius-lg: 3px;
-  --radius-xl: 3px;
-  --radius-card: 3px;
-  --radius-ctl: 3px;
+  /* radius: 컨트롤 6px / 카드 12px (Vercel 톤) */
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-card: 12px;
+  --radius-ctl: 6px;
 }
 
 @layer base {
