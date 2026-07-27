@@ -15,7 +15,7 @@ export function Footer({ align = "left" }: FooterProps) {
   return (
     <footer
       className={[
-        "pointer-events-none fixed bottom-0 left-0 z-40 flex h-8 w-full items-center px-4",
+        "pointer-events-none fixed bottom-0 left-0 z-20 flex w-full items-center",
         align === "center"
           ? "justify-center"
           : align === "right"
@@ -23,7 +23,9 @@ export function Footer({ align = "left" }: FooterProps) {
             : "justify-start",
       ].join(" ")}
     >
-      <Logo as="span" className="text-xs text-fg-2 bg-surface-2 " />
+      <div className="bg-surface-1 p-2 pl-4">
+        <Logo as="div" className="text-xs text-fg-2" />
+      </div>
     </footer>
   );
 }

@@ -1,17 +1,23 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { SpecColumns } from "./SpecColumns";
 import { EndpointSidebar } from "./EndpointSidebar";
 import { MethodBadge, FallbackBadge } from "@/components/MethodBadge";
 import { isHttpMethod } from "@/lib/constants";
-import { MOCK_PROJECT_VIEW, getMockEndpointDetail } from "@/lib/mock";
+import {
+  MOCK_PROJECT,
+  MOCK_PROJECT_VIEW,
+  getMockEndpointDetail,
+} from "@/lib/mock";
 import { ProjectOverview } from "./ProjectOverview";
 import { cn } from "@/lib/utils";
 import { useSpecCache } from "./useSpecCache";
 import { EndpointDetail } from "./EndpointDetail";
+import { SpecUpdateBanner } from "./SpecUpdateBanner";
+import { CommentPanel } from "./comments/CommentPanel";
 import type { SpecCache } from "./useSpecCache";
 import type { ProjectView } from "@/lib/types";
-import { useState } from "react";
-import { SpecUpdateBanner } from "./SpecUpdateBanner";
+import { MOCK_CURRENT_USER, MOCK_PROJECT_MEMBERS } from "@/lib/mock";
 
 // SpecDetailPage — 3컬럼 본문
 //
@@ -20,13 +26,16 @@ import { SpecUpdateBanner } from "./SpecUpdateBanner";
 //
 // TODO(데이터 단계): MOCK_PROJECT_VIEW 를 useProject(projectId),
 //   getMockEndpointDetail 을 useEndpoint(endpointId) 로 교체.
-// TODO(11-5 이후): detail 자리를 <SpecUpdateBanner /> · <EndpointDetail /> · <TryItPanel /> 로.
 export function SpecDetailPage() {
   const { projectId, endpointId } = useParams();
   const projectView = MOCK_PROJECT_VIEW;
   const cache = useSpecCache(projectView.components);
 
   const detail = endpointId ? getMockEndpointDetail(Number(endpointId)) : null;
+
+  // TODO(데이터 단계): ProjectView 에 role 이 없어 ProjectSummary 에서 가져온다.
+  //   SpecLayout 과 같은 출처를 봐야 두 곳이 어긋나지 않는다.
+  const isOwner = MOCK_PROJECT.role === "OWNER";
 
   // 배너를 닫은 스냅샷을 기억한다. 그보다 더 새 스냅샷이 오면 다시 뜬다.
   const [dismissed, setDismissed] = useState<number | null>(null);
@@ -63,17 +72,14 @@ export function SpecDetailPage() {
           )
         }
         comments={
-          <>
-            <div className="border-b border-border px-3 py-2.5">
-              <span className="text-sm font-medium text-fg-1">댓글</span>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-none p-3 pb-8">
-              <p className="text-sm text-fg-3">댓글 목록 (예정)</p>
-            </div>
-            <div className="border-t border-border p-3">
-              <p className="text-sm text-fg-3">댓글 입력 (예정)</p>
-            </div>
-          </>
+          <CommentPanel
+            me={MOCK_CURRENT_USER}
+            isOwner={isOwner}
+            members={MOCK_PROJECT_MEMBERS}
+            // 멘션 대상은 삭제되지 않은 엔드포인트로 한정된다(FR-8.3).
+            // 여기서 걸러 보내면 에디터가 다시 판단하지 않는다.
+            endpoints={projectView.endpoints.filter((e) => !e.isDeleted)}
+          />
         }
       />
     </>
@@ -99,7 +105,7 @@ function renderDetail(
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 pt-1">
         {isHttpMethod(detail.method) ? (
           <MethodBadge
             method={detail.method}
@@ -121,7 +127,7 @@ function renderDetail(
         {detail.isDeleted && <span className="text-xs text-fg-3">삭제됨</span>}
       </div>
 
-      {detail.summary && <p className="text-sm text-fg-2">{detail.summary}</p>}
+      {detail.summary && <p className="text-sm text-fg-3">{detail.summary}</p>}
 
       <div className="pt-4">
         <EndpointDetail
@@ -137,70 +143,3 @@ function renderDetail(
     </div>
   );
 }
-
-// import { MethodBadge } from "@/components/MethodBadge";
-// import type { HTTP_METHOD } from "@/lib/constants";
-
-// // SpecDetailPage — 3컬럼 본문 (목)
-// //
-// // 헤더는 SpecLayout이 그린다. 여기선 3컬럼만 채운다.
-// // 왼쪽 엔드포인트 사이드바: 보더 없음(Vercel 스타일). 오른쪽 댓글 패널만 border-l로 분리.
-// //
-// // TODO(spec 단계):
-// //   - 왼쪽: 엔드포인트 목록 useEndpoints(id)
-// //   - 중앙: 선택된 엔드포인트 상세 · Try it
-// //   - 오른쪽: 댓글 패널 (react-resizable-panels 로 드래그 리사이즈)
-// const MOCK_ENDPOINTS: { method: HTTP_METHOD; path: string }[] = [
-//   { method: "get", path: "/projects" },
-//   { method: "post", path: "/projects" },
-//   { method: "put", path: "/users/{id}" },
-//   { method: "patch", path: "/users/{id}" },
-//   { method: "delete", path: "/posts/{id}" },
-// ];
-
-// export function SpecDetailPage() {
-//   return (
-//     <div className="min-h-0 flex-1 overflow-x-auto">
-//       <div className="flex h-full min-w-[900px]">
-//         {/* 왼쪽 — 고정폭. 엔드포인트 목록 (보더 없음) */}
-//         <aside className="w-[240px] shrink-0 overflow-y-auto bg-surface-1 p-2 pb-8">
-//           {MOCK_ENDPOINTS.map((e, i) => (
-//             <div
-//               key={i}
-//               className="group flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 hover:bg-hover-icon"
-//             >
-//               <MethodBadge method={e.method} />
-//               <span className="font-mono text-sm text-fg-2 group-hover:text-fg-1">
-//                 {e.path}
-//               </span>
-//             </div>
-//           ))}
-//         </aside>
-
-//         {/* 중앙 — 남는 폭. 스펙 상세 · Try it */}
-//         <main className="min-w-0 flex-1 overflow-y-auto p-4 pb-8">
-//           <div className="flex items-center gap-2.5">
-//             <MethodBadge method="post" />
-//             <span className="font-mono text-base text-fg-1">/projects</span>
-//           </div>
-//           <p className="mt-3 text-sm text-fg-2">
-//             중앙 컬럼 — 스펙 상세 · Try it (예정)
-//           </p>
-//         </main>
-
-//         {/* 오른쪽 — 댓글 패널. 기능 분리를 위해 border-l 유지 */}
-//         <aside className="flex w-[300px] shrink-0 flex-col border-l border-border bg-surface-1">
-//           <div className="border-b border-border px-3 py-2.5">
-//             <span className="text-sm font-medium text-fg-1">댓글</span>
-//           </div>
-//           <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-8">
-//             <p className="text-sm text-fg-3">댓글 목록 (예정)</p>
-//           </div>
-//           <div className="border-t border-border p-3">
-//             <p className="text-sm text-fg-3">댓글 입력 (예정)</p>
-//           </div>
-//         </aside>
-//       </div>
-//     </div>
-//   );
-// }

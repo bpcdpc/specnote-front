@@ -34,7 +34,7 @@ export function ProjectOverview({
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-semibold text-fg-1">{project.title}</h2>
         {project.description && (
-          <p className="text-sm leading-relaxed text-fg-2">
+          <p className="text-sm leading-relaxed text-fg-3">
             {project.description}
           </p>
         )}
@@ -49,7 +49,7 @@ export function ProjectOverview({
             ) : (
               <FallbackBadge>{method}</FallbackBadge>
             )}
-            <span className="text-sm tabular-nums text-fg-2">{count}</span>
+            <span className="text-xs tabular-nums text-fg-3">{count}</span>
           </span>
         ))}
       </div>

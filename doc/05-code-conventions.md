@@ -1,9 +1,10 @@
 # 프론트엔드 코드 규약
 
-| 버전 | 일시           | 변경 내용                                                                                                                                                |
-| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.1 | 2026.07.19 SUN | 최초 작성. 흩어져 있던 코드 규약을 모음 — Base UI 문법(`01`에서), 폼 작성 규칙(`01`에서), `cn()` 병합, enum·타입 표기(`02`에서), heading 계층(`03`에서). |
-| v0.2 | 2026.07.20 MON | 11단계 구현 결과 반영. `HTTP_METHODS`를 소문자로 변경(OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다), `isHttpMethod` 위치를 `types.ts` → `constants.ts`로 정정, 좁히기 예제에서 `toUpperCase()` 정규화 제거, heading 계층표에 `h3`의 화면 내 구획 제목 용도 추가, TS 좁히기 함정 절 신설(옵셔널 체이닝 결과는 원본을 좁히지 않는다). |
+| 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.1 | 2026.07.19 SUN | 최초 작성. 흩어져 있던 코드 규약을 모음 — Base UI 문법(`01`에서), 폼 작성 규칙(`01`에서), `cn()` 병합, enum·타입 표기(`02`에서), heading 계층(`03`에서).                                                                                                                                                                                                                                  |
+| v0.3 | 2026.07.27 MON | 12단계 구현 결과 반영. **한글 IME 절 신설**(조합 중 `keydown` 가로채기 금지, `e.nativeEvent.isComposing` 가드, controlled `textarea`에서 강제 `blur()`로 조합을 확정시키지 않는다). Base UI 절에 **트리거 중첩 금지** 항목 추가(`IconButton`처럼 Tooltip을 내장한 컴포넌트를 `PopoverTrigger`에 넣지 않는다). enum 표기 절에 **`Record<ENUM, T>`로 누락을 컴파일 에러로 잡는 패턴** 추가. |
+| v0.2 | 2026.07.20 MON | 11단계 구현 결과 반영. `HTTP_METHODS`를 소문자로 변경(OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다), `isHttpMethod` 위치를 `types.ts` → `constants.ts`로 정정, 좁히기 예제에서 `toUpperCase()` 정규화 제거, heading 계층표에 `h3`의 화면 내 구획 제목 용도 추가, TS 좁히기 함정 절 신설(옵셔널 체이닝 결과는 원본을 좁히지 않는다).                          |
 
 > 이 문서는 **"어떻게 쓰는가"** 를 다룬다.
 > 무엇을 어디에 두는가는 `02-frontend-directories`, 화면 구조는 `03-frontend-layouts`,
@@ -23,6 +24,13 @@ shadcn을 **Base UI** 프리미티브로 쓴다. Radix 예제를 그대로 가�
 | 드롭다운 라벨               | `<DropdownMenuLabel>` 단독             | `<DropdownMenuGroup>` 안에서만. 단순 표시는 `<div>`                 |
 
 - **Trigger 안에 `<button>`을 또 넣지 않는다**(중첩 button 에러).
+- **트리거를 겹치지 않는다.** Tooltip을 내장한 컴포넌트(`IconButton`)를
+  `PopoverTrigger`의 `render`에 넣으면 두 트리거가 같은 `<button>`을 두고 다퉈
+  **팝오버가 아예 안 열린다.** 그런 자리는 `Button` + `ICON_BUTTON_OVERRIDE`로
+  스타일만 맞춘다. 팝오버가 열리면서 무엇을 하는 자리인지 보여주므로 툴팁이 없어도
+  정보가 사라지지 않는다.
+- **팝오버 항목 선택은 `onMouseDown`이다.** `onClick`은 `blur`가 먼저 일어나
+  팝오버가 닫힌 뒤에 실행돼 선택이 유실된다. `e.preventDefault()`로 포커스 이동도 막는다.
 - `DropdownMenuLabel`을 `<Group>` 밖에서 쓰면 `MenuGroupContext is missing` 에러가 난다.
 - **`render`에 `<a>`(Link)를 넘기면 `nativeButton` 경고가 뜬다.** 링크는 `Button`을 쓰지 말고
   `<Link>`에 버튼 스타일 클래스를 직접 입힌다(클래스는 `04-design-tokens`). 의미상으로도 `<a>`가 맞다.
@@ -121,6 +129,22 @@ export function isHttpMethod(m: string): m is HTTP_METHOD {
 - 타입만 필요하면 이 구문을 쓰지 않는다 — 런타임에 죽은 배열만 남는다.
 - **TS `enum`은 쓰지 않는다.** 런타임 객체가 번들에 남고 tree-shaking이 어렵다.
 
+**표시 정의는 `Record<ENUM, T>`로 받는다.** 값이 늘었을 때 화면 정의를 빠뜨리면
+컴파일 에러가 난다. `Partial`이나 인덱스 시그니처를 쓰면 런타임에 `undefined`가
+새어 화면이 빈 채로 뜬다.
+
+```ts
+type ReactionMeta = { emoji: string; label: string };
+
+export const REACTION_META: Record<REACTION_TYPE, ReactionMeta> = {
+  DONE: { emoji: "✅", label: "처리됨" },
+  ...
+};
+```
+
+순회 순서는 `constants.ts`의 배열을 그대로 재수출한다. 표시 쪽에서 따로 정하면
+값이 늘거나 순서가 바뀔 때 고칠 곳이 둘이 된다.
+
 ---
 
 ## 백엔드 응답 타입 — `lib/types.ts`
@@ -148,6 +172,41 @@ return <FallbackBadge>{method}</FallbackBadge>;
 
 컴포넌트는 좁은 타입만 받는다. 좁히는 책임은 **호출부**에 둔다 — 그래야 컴포넌트가 단순해지고
 "모르는 값일 때 뭘 보여줄지"를 화면마다 다르게 정할 수 있다.
+
+---
+
+## 한글 IME
+
+**한국어 서비스라 조합 중 상태를 항상 고려한다.** 라틴 입력만 보고 짠 핸들러는
+한글에서 마지막 글자가 잘리거나 중복되는 형태로 깨진다.
+
+### 1. 조합 중 `keydown`을 가로채지 않는다
+
+조합 중 `Enter`는 IME 확정용이다. 자동완성 팝오버가 이걸 "후보 선택"으로 채가면
+조합 중이던 글자가 통째로 사라진다.
+
+```tsx
+// 팝오버 키보드 조작 전체를 가드로 감싼다
+if (mention && !e.nativeEvent.isComposing) {
+  if (e.key === "Enter" || e.key === "Tab") { ... }
+}
+```
+
+`e.keyCode === 229` 대신 **`e.nativeEvent.isComposing`** 을 쓴다. keyCode는
+deprecated이고 브라우저마다 값이 갈린다.
+
+### 2. controlled `textarea`에서 강제 `blur()`로 조합을 확정시키지 않는다
+
+`blur()`는 조합을 **동기적으로 확정하지 않는다.** 확정 `input` 이벤트가 늦게 도착해
+React가 이미 비운 값 위에 덮어쓰거나, 반대로 확정 글자가 한 번 더 삽입된다.
+증상이 "마지막 글자가 잘림"과 "마지막 글자가 중복됨" 사이를 오갈 뿐 사라지지 않는다.
+
+- **키보드 단축키로 제출하지 않는다.** 12단계에서 Cmd/Ctrl+Enter를 제외한 이유다
+  (경위는 `01-frontend-stack` 미결 항목).
+- 버튼 클릭 경로는 안전하다. mousedown → blur → IME 확정 → `onChange` → 리렌더 →
+  click 순서라, 핸들러가 도는 시점에 state가 이미 최신이다.
+- 어쩔 수 없이 조합 중 제출을 받아야 한다면 `compositionend`를 기다린다.
+  다만 브라우저별 `input` / `compositionend` 순서 차이가 남는다.
 
 ---
 

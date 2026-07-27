@@ -6,7 +6,7 @@ type LogoProps = {
   // as: 렌더할 태그.
   //   "h1"   — 그 화면의 제목일 때 (로그인·회원가입)
   //   "span" — 장식일 때 (푸터).
-  as?: "h1" | "span";
+  as?: "h1" | "span" | "div";
   className?: string;
 };
 

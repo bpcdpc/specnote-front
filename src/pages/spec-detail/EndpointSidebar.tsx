@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EndpointListItem } from "./EndpointListItem";
+import { PANEL } from "./panelMetrics";
 import type { EndpointSummary } from "@/lib/types";
 
 // 태그가 없는 엔드포인트의 그룹명. OAS 는 태그 없는 operation 을 정상으로 규정하므로
@@ -31,7 +32,7 @@ function groupByTag(endpoints: EndpointSummary[]): Group[] {
   }
 
   const groups = [...map].map(([tag, list]) => ({ tag, endpoints: list }));
-  // "TAG 없음"만 맨 아래로 내린다. 나머지는 등장 순서 유지.
+  // "Tag 없음"만 맨 아래로 내린다. 나머지는 등장 순서 유지.
   return groups.sort((a, b) =>
     a.tag === NO_TAG ? 1 : b.tag === NO_TAG ? -1 : 0,
   );
@@ -44,7 +45,7 @@ function groupByTag(endpoints: EndpointSummary[]): Group[] {
 // 1. 검색은 path 와 summary 를 대상으로 한다(FR-3.4).
 //    summary 는 행에 표시하지 않지만 검색에는 쓴다 — "회원 등록"으로 찾을 수 있어야 한다.
 // 2. 검색 중에는 모든 그룹을 펼친다. 접힌 그룹 안의 결과가 안 보이면 검색이 망가진다.
-// 3. 삭제된 엔드포인트는 기본 숨김이고 토글로 노출한다(FR-8.1).
+// 3. 삭제된 엔드포인트는 기본 숨김이고 토글로 노출한다(FR-11.1).
 //    0건이면 토글 자체를 그리지 않는다.
 export function EndpointSidebar({
   endpoints,
@@ -81,11 +82,7 @@ export function EndpointSidebar({
 
   return (
     <div className="flex flex-col gap-1">
-      {/* 검색 — sticky. 목록이 길어도 위로 올라가지 않게 한다.
-          바깥 컨테이너(SpecColumns)의 SIDEBAR_PADDING 만큼 음수 마진으로 되돌려
-          스크롤 시 목록이 검색창 옆으로 비쳐 지나가지 않게 한다.
-          값이 두 파일에 흩어져 있으니 한쪽을 바꾸면 다른 쪽도 같이 봐야 한다. */}
-      <div className="sticky top-0 z-10 -ml-4 -mr-2 -mt-2 bg-surface-1 pb-2 pl-4 pr-2 pt-2">
+      <div className={PANEL.sidebar.stickyTop}>
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-fg-3"
@@ -97,7 +94,7 @@ export function EndpointSidebar({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="엔드포인트 검색"
             aria-label="엔드포인트 검색"
-            className="h-9 pl-8"
+            className="h-9 pl-8 text-xs"
           />
         </div>
       </div>
@@ -120,7 +117,6 @@ export function EndpointSidebar({
                 className={cn(
                   "flex w-full items-center gap-1 rounded-md px-1.5 py-1.5",
                   "text-xs font-medium uppercase tracking-wide text-fg-3",
-                  // "hover:bg-hover-ghost",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
@@ -137,7 +133,7 @@ export function EndpointSidebar({
                 )}
                 <span className="truncate">{tag}</span>
                 <span className="shrink-0 font-normal tabular-nums text-fg-3/70">
-                  ({list.length})
+                  {list.length}
                 </span>
               </button>
 

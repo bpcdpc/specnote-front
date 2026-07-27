@@ -456,17 +456,30 @@ export const MOCK_PROJECT_VIEW_AS_MEMBER: ProjectView = {
 // TODO(데이터 단계): useComments(endpointId) 로 교체.
 // ---------------------------------------------------------------------------
 
-// 멘션·작성자로 등장하는 팀원. 전역 AI 계정은 초대·멘션 대상이 아니다(UC-13).
-const MOCK_MEMBERS: Record<string, PublicUser> = {
+// 멘션·작성자로 등장하는 팀원.
+const MOCK_MEMBERS = {
   binyoung: MOCK_CURRENT_USER,
   huikyung: { id: 2, userName: "희경", email: "huikyung@example.com" },
   hyebin: { id: 3, userName: "혜빈", email: "hyebin@example.com" },
-  ai: { id: 99, userName: "SpecNote AI", email: "ai@specnote.local" },
+} satisfies Record<string, PublicUser>;
+
+// 멘션 자동완성 후보. 실제로는 GET /api/projects/:id/members 응답이다.
+// AI 계정은 여기 없다 — 멘션 대상이 아니다(UC-13).
+export const MOCK_PROJECT_MEMBERS: PublicUser[] = Object.values(MOCK_MEMBERS);
+
+// 전역 AI 계정. 초대·멘션 대상이 아니라(UC-13) MOCK_MEMBERS 에 넣지 않는다.
+// 작성자로만 등장하며, 화면 표시는 author 가 아니라 isAiGenerated 가 판정한다.
+const MOCK_AI: PublicUser = {
+  id: 99,
+  userName: "SpecNote AI",
+  email: "ai@specnote.local",
 };
 
 const COMMENT_ENDPOINT_ID = 16;
 
 // 리액션 4종: DONE(처리됨) / CHECKING(확인중) / ACK(알겠음) / BEST(최고)
+// users 는 누가 남겼는지다. count 와 개수가 어긋나면 칩과 팝오버가 다른 말을 하고,
+// reactedByMe 가 true 면 목록에 빈영(id 1)이 있어야 앞뒤가 맞는다.
 const MOCK_COMMENTS: CommentTree[] = [
   // 1. 일반 스레드 — 질문 + 대댓글 2개. 수정 이력과 멘션이 섞여 있다.
   {
@@ -477,11 +490,25 @@ const MOCK_COMMENTS: CommentTree[] = [
       "정원이 꽉 찼을 때 에러 코드가 명세에 없는데 어떻게 처리되나요?\n지금은 500이 떨어져서 프론트에서 구분이 안 됩니다.",
     isDeleted: false,
     author: MOCK_MEMBERS.binyoung,
+    isAiGenerated: false,
     createdAt: "2026-07-19T02:14:00.000Z",
     updatedAt: "2026-07-19T02:14:00.000Z",
     reactions: [
-      { type: "CHECKING", count: 2, reactedByMe: false },
-      { type: "ACK", count: 1, reactedByMe: true },
+      {
+        type: "CHECKING",
+        count: 2,
+        reactedByMe: false,
+        users: [
+          { userId: 2, userName: "희경" },
+          { userId: 3, userName: "혜빈" },
+        ],
+      },
+      {
+        type: "ACK",
+        count: 1,
+        reactedByMe: true,
+        users: [{ userId: 1, userName: "빈영" }],
+      },
     ],
     memberMentions: [],
     endpointMentions: [],
@@ -491,12 +518,25 @@ const MOCK_COMMENTS: CommentTree[] = [
         endpointId: COMMENT_ENDPOINT_ID,
         parentId: 101,
         // 수정된 댓글 — createdAt 과 updatedAt 이 다르다.
-        content: "423 Locked 로 변경했습니다. 명세도 같이 올려두겠습니다.",
+        content:
+          '423 Locked 로 변경했습니다. 명세도 같이 올려두겠습니다.\n\n```json\n{ "message": "이미 신청한 강의입니다." }\n```',
         isDeleted: false,
         author: MOCK_MEMBERS.hyebin,
+        isAiGenerated: false,
         createdAt: "2026-07-19T02:31:00.000Z",
         updatedAt: "2026-07-19T03:05:00.000Z",
-        reactions: [{ type: "DONE", count: 3, reactedByMe: true }],
+        reactions: [
+          {
+            type: "DONE",
+            count: 3,
+            reactedByMe: true,
+            users: [
+              { userId: 1, userName: "빈영" },
+              { userId: 2, userName: "희경" },
+              { userId: 3, userName: "혜빈" },
+            ],
+          },
+        ],
         memberMentions: [],
         endpointMentions: [],
       },
@@ -506,9 +546,10 @@ const MOCK_COMMENTS: CommentTree[] = [
         parentId: 101,
         // 멘션 2종 — 멤버와 엔드포인트가 한 댓글에 같이 들어간다.
         content:
-          "@희경 수강 취소 쪽도 같은 문제 있어요. #DELETE /enrollments/{id} 확인 부탁드립니다.",
+          "@2| 수강 취소 쪽도 같은 문제 있어요. #19| 확인 부탁드립니다. `isDeleted` 플래그도 같이 봐주세요.",
         isDeleted: false,
         author: MOCK_MEMBERS.binyoung,
+        isAiGenerated: false,
         createdAt: "2026-07-19T03:40:00.000Z",
         updatedAt: "2026-07-19T03:40:00.000Z",
         reactions: [],
@@ -529,9 +570,17 @@ const MOCK_COMMENTS: CommentTree[] = [
     content: "삭제된 댓글입니다",
     isDeleted: true,
     author: MOCK_MEMBERS.huikyung,
+    isAiGenerated: false,
     createdAt: "2026-07-19T05:02:00.000Z",
     updatedAt: "2026-07-19T05:20:00.000Z",
-    reactions: [{ type: "ACK", count: 1, reactedByMe: false }],
+    reactions: [
+      {
+        type: "ACK",
+        count: 1,
+        reactedByMe: false,
+        users: [{ userId: 3, userName: "혜빈" }],
+      },
+    ],
     memberMentions: [],
     endpointMentions: [],
     replies: [
@@ -539,9 +588,11 @@ const MOCK_COMMENTS: CommentTree[] = [
         id: 105,
         endpointId: COMMENT_ENDPOINT_ID,
         parentId: 104,
-        content: "네 그 부분은 다음 스프린트로 넘기죠.",
+        content:
+          "네 그 부분은 다음 스프린트로 넘기죠.\n\n```\nGET /api/projects/1/endpoints/16/comments?include=reactions,mentions&sort=createdAt\n```\n\nhttps://github.com/bpcdpc/specnote-back/issues/12",
         isDeleted: false,
         author: MOCK_MEMBERS.hyebin,
+        isAiGenerated: false,
         createdAt: "2026-07-19T05:11:00.000Z",
         updatedAt: "2026-07-19T05:11:00.000Z",
         reactions: [],
@@ -560,10 +611,21 @@ const MOCK_COMMENTS: CommentTree[] = [
     content:
       "**논의 요약**\n\n- 정원 초과 시 응답 코드가 명세에 없어 프론트에서 분기 불가\n- 409 Conflict 검토 후 423 Locked 로 확정\n- 수강 취소 엔드포인트도 동일 이슈로 확인 대기",
     isDeleted: false,
-    author: MOCK_MEMBERS.ai,
+    author: MOCK_AI,
+    isAiGenerated: true,
     createdAt: "2026-07-19T06:00:00.000Z",
     updatedAt: "2026-07-19T06:00:00.000Z",
-    reactions: [{ type: "BEST", count: 2, reactedByMe: false }],
+    reactions: [
+      {
+        type: "BEST",
+        count: 2,
+        reactedByMe: false,
+        users: [
+          { userId: 2, userName: "희경" },
+          { userId: 3, userName: "혜빈" },
+        ],
+      },
+    ],
     memberMentions: [],
     endpointMentions: [],
     replies: [],

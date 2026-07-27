@@ -1,12 +1,13 @@
 # 프론트엔드 폴더 구조
 
-| 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.1 | 2026.07.16 THU | 최초 작성. 폴더 트리 · 배치 원칙 분리.                                                                                                                                                                                                                                                                                                                                                                         |
-| v0.2 | 2026.07.17 FRI | 구조 전면 개편 — 도메인 단위(`features/`) 폐기, **화면 단위(`pages/`) + 역할 단위(`components/`, `lib/api/`)** 로 재편. 레이아웃을 `layouts/`로 분리.                                                                                                                                                                                                                                                          |
-| v0.3 | 2026.07.17 FRI | 헤더 조립 주체를 페이지 → **레이아웃**으로 변경.                                                                                                                                                                                                                                                                                                                                                               |
-| v0.4 | 2026.07.19 SUN | `project-form/` 내부 재편 — `ProjectFormPage`(공용) 폐기, **`ProjectCreatePage` + `ProjectSettingsPage`로 분리**(폴더는 유지). `login`·`signup`을 **`auth/`로 병합**. 묶음 기준을 "조각 공유" → **"같은 도메인"** 으로 재정의. `SpecJsonUrlField` 개명. `PageHeading` 신설. `lib/types.ts` · `constants.ts` 생성. **코드 규약은 `05-code-conventions`로, 조각 책임·헤더 조립은 `03-frontend-layouts`로 이관.** |
-| v0.5 | 2026.07.20 MON | 11단계 구현 결과 반영. 신규 파일 9종 추가(`Breadcrumb`, `useMediaQuery`, `SpecPanelsContext`, `BearerTokenContext`, `ProjectOverview`, `SchemaTree`, `ExampleBlock`, `buildExample`, `useTryIt`), `HeaderBreadcrumb` → `Breadcrumb` 개명, `BackButton` 미사용 표시. **`hooks/` 폴더를 만들지 않는 근거** 절 신설. `lib/mock.ts`는 데이터 단계에서 삭제할 파일이라 트리에 올리지 않는다. |
+| 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.1 | 2026.07.16 THU | 최초 작성. 폴더 트리 · 배치 원칙 분리.                                                                                                                                                                                                                                                                                                                                                                                                             |
+| v0.2 | 2026.07.17 FRI | 구조 전면 개편 — 도메인 단위(`features/`) 폐기, **화면 단위(`pages/`) + 역할 단위(`components/`, `lib/api/`)** 로 재편. 레이아웃을 `layouts/`로 분리.                                                                                                                                                                                                                                                                                              |
+| v0.3 | 2026.07.17 FRI | 헤더 조립 주체를 페이지 → **레이아웃**으로 변경.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| v0.4 | 2026.07.19 SUN | `project-form/` 내부 재편 — `ProjectFormPage`(공용) 폐기, **`ProjectCreatePage` + `ProjectSettingsPage`로 분리**(폴더는 유지). `login`·`signup`을 **`auth/`로 병합**. 묶음 기준을 "조각 공유" → **"같은 도메인"** 으로 재정의. `SpecJsonUrlField` 개명. `PageHeading` 신설. `lib/types.ts` · `constants.ts` 생성. **코드 규약은 `05-code-conventions`로, 조각 책임·헤더 조립은 `03-frontend-layouts`로 이관.**                                     |
+| v0.6 | 2026.07.27 MON | **12단계 구현 결과 반영.** `comments/` 트리를 실제와 일치시킴 — `MoveThreadPopover` → **`MoveCommentsPopover`**(이동 단위가 스레드에서 엔드포인트로 바뀜), **`AiSummaryButton` 폐기**(패널 헤더의 `IconButton`으로 흡수), `CommentContext.tsx` `mentions.ts` `reactions.ts` 신설. 누락돼 있던 `components/IconButton.tsx`, `components/TimeAgo.tsx`, `pages/spec-detail/panelMetrics.ts` 추가. `components/ui/` 목록에 12단계에서 설치한 4종 반영. |
+| v0.5 | 2026.07.20 MON | 11단계 구현 결과 반영. 신규 파일 9종 추가(`Breadcrumb`, `useMediaQuery`, `SpecPanelsContext`, `BearerTokenContext`, `ProjectOverview`, `SchemaTree`, `ExampleBlock`, `buildExample`, `useTryIt`), `HeaderBreadcrumb` → `Breadcrumb` 개명, `BackButton` 미사용 표시. **`hooks/` 폴더를 만들지 않는 근거** 절 신설. `lib/mock.ts`는 데이터 단계에서 삭제할 파일이라 트리에 올리지 않는다.                                                            |
 
 ---
 
@@ -69,6 +70,7 @@ src/
 │   ├── spec-detail/
 │   │   ├── SpecDetailPage.tsx        # 3컬럼 본문, endpointId 읽기
 │   │   ├── SpecColumns.tsx           # 3컬럼 셸 — 리사이즈 + 접기 + 오버레이
+│   │   ├── panelMetrics.ts           # 컬럼 폭·임계값·sticky 클래스 상수
 │   │   ├── SpecPanelsContext.tsx     # 양쪽 패널 열림/접힘 · isWide 공유
 │   │   ├── BearerTokenContext.tsx    # 헤더 입력값을 TryItPanel까지 전달
 │   │   ├── BearerTokenInput.tsx      # 헤더 Bearer 입력
@@ -84,15 +86,17 @@ src/
 │   │   ├── SpecUpdateBanner.tsx      # snapshotId 불일치 배너
 │   │   ├── useSpecCache.ts           # components 캐시 + $ref 지연 해석
 │   │   └── comments/                 # 댓글 패널 (spec-detail 전용)
-│   │       ├── CommentPanel.tsx
-│   │       ├── CommentThread.tsx
-│   │       ├── CommentItem.tsx
+│   │       ├── CommentPanel.tsx      # 패널 골격 + 헤더 + 최상위 에디터
+│   │       ├── CommentContext.tsx    # 편집 상태, me/members/endpoints 배포
+│   │       ├── CommentThread.tsx     # 댓글 + 답글 묶음 (2뎁스 고정)
+│   │       ├── CommentItem.tsx       # 댓글/답글 한 건 (공용)
 │   │       ├── CommentEditor.tsx     # 평문 textarea + @ / # 자동완성
-│   │       ├── MentionPopover.tsx
 │   │       ├── CommentContent.tsx    # react-markdown 렌더
-│   │       ├── ReactionBar.tsx
-│   │       ├── MoveThreadPopover.tsx # [Owner] 스레드 이동
-│   │       └── AiSummaryButton.tsx
+│   │       ├── MentionPopover.tsx    # @ / # 후보 목록
+│   │       ├── mentions.ts           # 저장↔표시↔ID 변환
+│   │       ├── ReactionBar.tsx       # 칩 + 추가/해제 팝오버
+│   │       ├── reactions.ts          # 이모지·라벨 표시 정의
+│   │       └── MoveCommentsPopover.tsx  # [Owner] 엔드포인트 단위 댓글 이동
 │   │
 │   └── NotFoundPage.tsx              # 404
 │
@@ -106,6 +110,9 @@ src/
 │   │   ├── popover.tsx
 │   │   ├── tooltip.tsx
 │   │   ├── avatar.tsx
+│   │   ├── alert-dialog.tsx          # 12단계 — 댓글 이동 확인
+│   │   ├── command.tsx               # 12단계 — 이동 대상 검색(cmdk)
+│   │   ├── toast.tsx                 # 12단계 — 이동 완료 알림
 │   │   └── ...                       # 필요할 때 `npx shadcn add <name>`
 │   │
 │   ├── Header.tsx                    # 뼈대. props: left, right, wide
@@ -113,6 +120,8 @@ src/
 │   ├── Breadcrumb.tsx                # Dashboard / 프로젝트명 / 설정
 │   ├── BackButton.tsx                # ← 뒤로가기 (미사용 — 데모 후 정리)
 │   ├── PageHeading.tsx               # 아이콘 + 제목(h2)
+│   ├── IconButton.tsx                # 아이콘 버튼 + Tooltip 내장
+│   ├── TimeAgo.tsx                   # ISO 문자열 → 상대 시간 표시
 │   ├── MethodBadge.tsx               # GET/POST/PUT/PATCH/DELETE
 │   ├── Logo.tsx                      # props: short, as(h1|span)
 │   ├── EmptyState.tsx                # PageHeading + action
@@ -171,11 +180,11 @@ src/
 훅이라는 이유로 따로 모으면, 같은 화면에서만 쓰는 훅이 그 화면 폴더를 떠나
 컴포넌트와 멀어진다. 그러면 화면 하나를 지울 때 지울 것이 두 군데로 갈린다.
 
-| 훅                  | 어디에                    | 이유                     |
-| ------------------- | ------------------------- | ------------------------ |
-| `useMediaQuery`     | `lib/`                    | 도메인을 모르고 어디서든 쓴다 |
-| `useSpecCache`      | `pages/spec-detail/`      | SpecDetail 전용          |
-| `useTryIt`          | `pages/spec-detail/`      | SpecDetail 전용          |
+| 훅              | 어디에               | 이유                          |
+| --------------- | -------------------- | ----------------------------- |
+| `useMediaQuery` | `lib/`               | 도메인을 모르고 어디서든 쓴다 |
+| `useSpecCache`  | `pages/spec-detail/` | SpecDetail 전용               |
+| `useTryIt`      | `pages/spec-detail/` | SpecDetail 전용               |
 
 **목 데이터도 같은 기준을 따른다.** 여러 화면이 먹으면 `lib/mock.ts`,
 한 화면만 쓰면 그 화면 폴더에 둔다. 현재는 전자라 `lib/`에 있다.
@@ -185,18 +194,32 @@ src/
 
 ---
 
+## `IconButton`을 공용으로 올린 이유
+
+`components/`에 있다. SpecLayout 헤더, 댓글 패널, 사이드바가 모두 쓴다.
+
+**Tooltip을 내장한다.** 아이콘만 있는 버튼은 라벨이 없어 무슨 버튼인지 알 수 없다.
+호출부마다 Tooltip을 감싸면 빠뜨리는 곳이 생긴다.
+
+다만 그 때문에 **`PopoverTrigger`와는 직접 조합할 수 없다.** 두 트리거가 같은
+`<button>`을 두고 다퉈 팝오버가 안 열린다. 그런 자리는 `Button` + `ICON_BUTTON_OVERRIDE`로
+스타일만 맞춘다(`ReactionBar`, `MoveCommentsPopover`가 이 패턴). 툴팁이 없어도
+팝오버가 열리면서 무엇을 하는 자리인지 바로 보여줘 정보 손실이 없다.
+
+---
+
 ## 헤더 조각의 위치
 
 `Header`는 뼈대만 갖고 내용은 슬롯으로 받는다. 그 조각들이 어디에 있는지만 여기서 정의한다.
 누가 슬롯을 채우는지는 `03-frontend-layouts`을 참고한다.
 
-| 조각                    | 위치                 | 이유                        |
-| ----------------------- | -------------------- | --------------------------- |
-| 헤더 뼈대 (`Header`)    | `components/`        | 슬롯 받아 배치만 함         |
-| 브레드크럼 (`Breadcrumb`) | `components/`      | 여러 레이아웃이 공유        |
-| 뒤로가기 (`BackButton`) | `components/`        | 미사용 — 브레드크럼으로 대체됨 |
-| 유저 메뉴 (`UserMenu`)  | `components/`        | 여러 레이아웃이 공유        |
-| 알림 드롭다운           | `components/`        | UserMenu 안에서 사용        |
-| Bearer 입력             | `pages/spec-detail/` | SpecDetail 전용             |
-| 패널 토글 버튼          | `layouts/SpecLayout` | 헤더 조립 주체가 직접 렌더  |
-| `⚙` 설정 버튼           | `layouts/SpecLayout` | 헤더 조립 주체가 직접 렌더  |
+| 조각                      | 위치                 | 이유                           |
+| ------------------------- | -------------------- | ------------------------------ |
+| 헤더 뼈대 (`Header`)      | `components/`        | 슬롯 받아 배치만 함            |
+| 브레드크럼 (`Breadcrumb`) | `components/`        | 여러 레이아웃이 공유           |
+| 뒤로가기 (`BackButton`)   | `components/`        | 미사용 — 브레드크럼으로 대체됨 |
+| 유저 메뉴 (`UserMenu`)    | `components/`        | 여러 레이아웃이 공유           |
+| 알림 드롭다운             | `components/`        | UserMenu 안에서 사용           |
+| Bearer 입력               | `pages/spec-detail/` | SpecDetail 전용                |
+| 패널 토글 버튼            | `layouts/SpecLayout` | 헤더 조립 주체가 직접 렌더     |
+| `⚙` 설정 버튼             | `layouts/SpecLayout` | 헤더 조립 주체가 직접 렌더     |

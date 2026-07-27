@@ -1,5 +1,6 @@
 import { RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/IconButton";
 
 // SpecUpdateBanner — 스펙 스냅샷 불일치 알림
 //
@@ -31,14 +32,9 @@ export function SpecUpdateBanner({
         새로고침
       </Button>
 
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="알림 닫기"
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-3 hover:bg-hover-icon hover:text-fg-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <X className="size-4" aria-hidden="true" />
-      </button>
+      <IconButton label="알림 닫기" onClick={onDismiss} className="text-fg-3">
+        <X aria-hidden="true" />
+      </IconButton>
     </div>
   );
 }

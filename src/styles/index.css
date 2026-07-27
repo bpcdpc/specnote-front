@@ -18,8 +18,8 @@
   --sn-surface-3: #f2f2f2; /* 선택된 항목 */
 
   /* ── 호버 (두 단계) ── */
-  --sn-hover-ghost: #f7f7f7; /* ghost / 드롭다운 / 카드 (아주 옅게) */
-  --sn-hover-icon: #f0f0f0; /* 아이콘 버튼 / 목록 행 (진하게) */
+  --sn-hover-ghost: #f4f4f4; /* ghost / 드롭다운 / 카드 */
+  --sn-hover-icon: #ebebeb; /* 아이콘 버튼 / 목록 행 */
 
   /* ── 텍스트 ── */
   --sn-fg-1: #171717;
@@ -27,9 +27,10 @@
   --sn-fg-3: #8f8f8f;
 
   /* ── 보더 ── */
-  --sn-border: #d4d4d4;
-  --sn-input-border: #dcdcdc; /* 인풋용 — 버튼 보더보다 옅게 */
-  --sn-input-bg: #fafafa; /* 인풋 배경 — 흰 배경에 살짝 */
+  --sn-border: #cbcbcb;
+  --sn-input-border: #d4d4d4; /* 인풋용 — 버튼 보더보다 옅게 */
+  --sn-input-border-focus: #8f8f8f; /* 인풋 focus용 */
+  --sn-input-bg: #fafafa;
 
   /* ── 강조 (Vercel Blue) — 포커스 링 / 링크·멘션 / 선택 표시 / OWNER 뱃지 ──
      3단계: subtle(흐림 배경) / muted(중간) / strong(원색). */
@@ -92,6 +93,7 @@
   --border: var(--sn-border);
   --input: var(--sn-border);
   --input-border: var(--sn-input-border);
+  --input-border-focus: var(--sn-input-border-focus);
   --input-bg: var(--sn-input-bg);
   --ring: var(--sn-accent);
 
@@ -115,18 +117,16 @@
   --sn-surface-2: #000000;
   --sn-surface-3: #242424;
 
-  --sn-hover-ghost: #141414;
-  --sn-hover-icon: #1a1a1a;
+  --sn-hover-ghost: #1c1c1c;
+  --sn-hover-icon: #212121;
 
   --sn-fg-1: #ededed;
   --sn-fg-2: #a1a1a1;
   --sn-fg-3: #737373;
 
-  --sn-border: #2b2b2b;
-  /* --sn-input-border: #1f1f1f;
-  --sn-input-bg: #0d0d0d; */
-
-  --sn-input-border: #212121;
+  --sn-border: #313131;
+  --sn-input-border: #303030; /* 인풋용 — 일반 보더보다 한 단 옅게 */
+  --sn-input-border-focus: #737373; /* 인풋 focus용 */
   --sn-input-bg: #000000;
 
   --sn-accent: #0070f3;
@@ -229,6 +229,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-input-border: var(--input-border);
+  --color-input-border-focus: var(--input-border-focus);
   --color-input-bg: var(--input-bg);
   --color-ring: var(--ring);
 
@@ -241,13 +242,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* radius: 컨트롤 6px / 카드 12px (Vercel 톤) */
-  --radius-sm: 6px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-card: 12px;
-  --radius-ctl: 6px;
+  /* radius: 컨트롤 6px / 카드 12px */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.365rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-card: 0.75rem;
+  --radius-ctl: 0.375rem;
 }
 
 @layer base {
@@ -264,5 +265,14 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@keyframes comment-highlight {
+  from {
+    background-color: var(--color-accent-subtle);
+  }
+  to {
+    background-color: transparent;
   }
 }

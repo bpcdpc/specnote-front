@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Group, Panel, Separator, usePanelRef } from "react-resizable-panels";
 import { cn } from "@/lib/utils";
 import { useSpecPanels } from "./SpecPanelsContext";
+import { COLUMN, PANEL, px } from "./panelMetrics";
 
 type SpecColumnsProps = {
   sidebar: ReactNode; // 왼쪽 — 엔드포인트 목록
@@ -10,7 +11,7 @@ type SpecColumnsProps = {
   comments: ReactNode; // 오른쪽 — 댓글 패널
 };
 
-// 구분선 — 평소 투명. 호버·드래그·포커스에서 드러난다.
+// 구분선 — 평소 투명. 호버, 드래그, 포커스에서 드러난다.
 // 커서가 col-resize 로 바뀌는 것과 함께 잡을 위치를 알려주고,
 // 드래그 중에도 유지돼 지금 조작 중인 경계가 어디인지 보인다.
 const SEPARATOR =
@@ -20,10 +21,9 @@ const SEPARATOR =
   "data-[separator=focus]:bg-border " +
   "focus-visible:outline-none";
 
-// 왼쪽 컬럼 안쪽 여백. 두 분기가 같은 값을 써야 폭을 오갈 때 목록이 안 흔들린다.
-// py-2 대신 pt/pb 를 나눠 쓴다 — 생 문자열이라 tailwind-merge 가 안 돌고,
-// py-2 와 pb-8 이 같이 있으면 CSS 순서로 승부가 갈려 결과가 불확실하다.
-const SIDEBAR_PADDING = "pl-4 pr-2 pt-2 pb-8";
+// 양쪽 날개 안쪽 래퍼. min-h-full 이라 내용이 짧아도 컬럼 높이를 채우고,
+// flex-col 의 flex-1 자식(댓글 목록)이 남는 높이를 먹어 입력창이 바닥에 선다.
+const WING = "flex min-h-full flex-col";
 
 // SpecColumns — SpecDetail 3컬럼 골격
 //
@@ -34,13 +34,12 @@ const SIDEBAR_PADDING = "pl-4 pr-2 pt-2 pb-8";
 //      <  lg  덮기. 양쪽 오버레이. 3컬럼이 물리적으로 안 들어가는 구간이다.
 //    슬롯은 어느 쪽이든 한 번만 렌더한다. DOM 을 두 벌 만들지 않는다.
 // 2. v4 는 px 단위를 지원한다. 백분율 환산이 필요 없다.
-//    양쪽에 preserve-pixel-size 를 주고 중앙만 preserve-relative-size 로 둔다
+//    양쪽에 preserve-pixel-size 를 주고 중앙은 기본값(relative)으로 둔다
 //    (Group 은 relative 패널을 최소 하나 요구한다).
 // 3. Panel 안쪽 div 에 overflow:auto 가 인라인으로 이미 있고 className 도 그 div 로 간다.
 //    즉 스크롤 주체가 그 div 라 overscroll-none 은 Panel 의 className 에 붙인다.
 // 4. expand() 는 "가장 최근 크기"로 되돌린다. 접었다 펴도 드래그한 폭이 유지된다.
-// 5. 하단 pb-8 은 푸터(h-8) 높이만큼의 여백이다. 푸터가 pointer-events-none 이라
-//    콘텐츠가 그 아래로 흐르면 읽히지 않는다.
+// 5. 치수와 여백은 전부 panelMetrics 가 갖는다. 여기서 숫자를 직접 쓰지 않는다.
 export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
   const {
     isWide,
@@ -88,7 +87,12 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
 
     return (
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <main className="h-full overflow-auto overscroll-none bg-surface-2 px-4 pt-4 pb-10">
+        <main
+          className={cn(
+            "h-full overflow-auto overscroll-none bg-surface-2",
+            PANEL.detail.narrow,
+          )}
+        >
           {detail}
         </main>
 
@@ -104,23 +108,22 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
           className={cn(
             "absolute inset-y-0 left-0 z-40 w-full max-w-2xl",
             "overflow-auto overscroll-none bg-surface-1 transition-transform",
-            SIDEBAR_PADDING,
             sidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
           aria-hidden={!sidebarOpen}
         >
-          {sidebar}
+          <div className={cn(PANEL.sidebar.padding, WING)}>{sidebar}</div>
         </aside>
 
         <aside
           className={cn(
-            "absolute inset-y-0 right-0 z-40 flex w-full max-w-2xl flex-col",
-            "bg-surface-1 transition-transform",
+            "absolute inset-y-0 right-0 z-40 w-full max-w-2xl",
+            "overflow-auto overscroll-none bg-surface-1 transition-transform",
             commentsOpen ? "translate-x-0" : "translate-x-full",
           )}
           aria-hidden={!commentsOpen}
         >
-          {comments}
+          <div className={cn(PANEL.comments.padding, WING)}>{comments}</div>
         </aside>
       </div>
     );
@@ -135,24 +138,26 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
           panelRef={sidebarRef}
           collapsible
           collapsedSize="0px"
-          defaultSize="300px"
-          minSize="240px"
-          maxSize="400px"
+          defaultSize={px(COLUMN.sidebar.default)}
+          minSize={px(COLUMN.sidebar.min)}
+          maxSize={px(COLUMN.sidebar.max)}
           groupResizeBehavior="preserve-pixel-size"
           className="overscroll-none bg-surface-1"
           onResize={(size) => setSidebarOpen(size.inPixels > 0)}
         >
-          <div className={SIDEBAR_PADDING}>{sidebar}</div>
+          <div className={cn(PANEL.sidebar.padding, WING)}>{sidebar}</div>
         </Panel>
 
         <Separator className={SEPARATOR} aria-label="엔드포인트 목록 폭 조절" />
 
         {/* 중앙 — 남는 폭 */}
-        <Panel minSize="320px" className="overscroll-none bg-surface-2">
-          <main className="px-14 pt-2 pb-10">{detail}</main>
+        <Panel
+          minSize={px(COLUMN.detail.min)}
+          className="overscroll-none bg-surface-2"
+        >
+          <main className={PANEL.detail.wide}>{detail}</main>
         </Panel>
 
-        {/* 오른쪽 구분선 */}
         <Separator className={SEPARATOR} aria-label="댓글 패널 폭 조절" />
 
         {/* 오른쪽 — 댓글 패널 */}
@@ -160,14 +165,14 @@ export function SpecColumns({ sidebar, detail, comments }: SpecColumnsProps) {
           panelRef={commentsRef}
           collapsible
           collapsedSize="0px"
-          defaultSize="300px"
-          minSize="240px"
-          maxSize="600px"
+          defaultSize={px(COLUMN.comments.default)}
+          minSize={px(COLUMN.comments.min)}
+          maxSize={px(COLUMN.comments.max)}
           groupResizeBehavior="preserve-pixel-size"
           className="overscroll-none bg-surface-1"
           onResize={(size) => setCommentsOpen(size.inPixels > 0)}
         >
-          <div className="flex h-full flex-col">{comments}</div>
+          <div className={cn(PANEL.comments.padding, WING)}>{comments}</div>
         </Panel>
       </Group>
     </div>

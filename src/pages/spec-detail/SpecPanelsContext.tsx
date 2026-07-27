@@ -7,11 +7,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { useMediaQuery } from "@/lib/useMediaQuery";
-
-// 3컬럼이 기본폭으로 성립하는 최소 폭은 240 + 320 + 300 + 구분선 2 = 862px 이다.
-// lg(1024) 를 기준으로 잡으면 862~1024 가 여유분이 되고, 가로 태블릿과 데스크탑이
-// 밀어내기, 세로 태블릿과 모바일이 덮기가 된다.
-const WIDE = "(min-width: 1024px)";
+import { WIDE_QUERY } from "./panelMetrics";
 
 type SpecPanelsValue = {
   // 넓은 폭 — 밀어내기. 좁은 폭 — 덮기.
@@ -31,8 +27,9 @@ const SpecPanelsContext = createContext<SpecPanelsValue | null>(null);
 // SpecPanelsProvider — 양쪽 사이드바 열림 상태
 //
 // SpecLayout 이 <Outlet> 을 감싸 제공한다. 헤더 토글과 SpecColumns 가 같이 읽는다.
+// 임계값은 panelMetrics 의 WIDE_QUERY 하나뿐이다. 여기서 따로 판단하지 않는다.
 export function SpecPanelsProvider({ children }: { children: ReactNode }) {
-  const isWide = useMediaQuery(WIDE);
+  const isWide = useMediaQuery(WIDE_QUERY);
   const [sidebarOpen, setSidebarOpen] = useState(isWide);
   const [commentsOpen, setCommentsOpen] = useState(isWide);
 
