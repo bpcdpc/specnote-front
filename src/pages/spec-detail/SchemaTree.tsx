@@ -71,7 +71,7 @@ export function SchemaTree({
     itemResult?.status === "ok" ? itemResult.refName : result.refName;
 
   // 표시용 타입 — 배열은 요소 타입에 [] 를 붙인다.
-  const label = buildLabel(node, target, targetRef, isArray);
+  const label = buildLabel(target, targetRef, isArray);
 
   // 순환 — 조상에 이미 있으면 펼치지 않는다.
   const isCycle = targetRef !== null && ancestors.has(targetRef);
@@ -146,7 +146,6 @@ export function SchemaTree({
 
 // 타입 라벨. 이름 있는 스키마는 이름을, 없으면 원시 타입을 쓴다.
 function buildLabel(
-  node: SchemaNode,
   target: SchemaNode,
   targetRef: string | null,
   isArray: boolean,

@@ -1,5 +1,9 @@
-import type { MemberMention, EndpointMention } from "@/lib/types";
-import type { PublicUser, EndpointSummary } from "@/lib/types";
+import type {
+  UserRef,
+  EndpointRef,
+  PublicUser,
+  EndpointSummary,
+} from "@/lib/types";
 
 // 멘션 저장 형식 — @userId| / #endpointId|
 //
@@ -32,8 +36,8 @@ function escapeLinkText(text: string): string {
 // 마주칠 확률이 낮아 감수한다.
 export function mentionsToMarkdown(
   content: string,
-  members: MemberMention[],
-  endpoints: EndpointMention[],
+  members: UserRef[],
+  endpoints: EndpointRef[],
 ): string {
   return content
     .replace(USER_TOKEN, (raw, id: string) => {
