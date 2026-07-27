@@ -8,13 +8,18 @@ import { router } from "@/app/router";
 import "@/styles/index.css";
 import { Toaster } from "./components/ui/toast";
 
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/api/queryClient";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
-      <TooltipProvider delay={200}>
-        <RouterProvider router={router} />
-      </TooltipProvider>
-      <Toaster />
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delay={200}>
+          <RouterProvider router={router} />
+        </TooltipProvider>
+        <Toaster />
+      </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,
 );

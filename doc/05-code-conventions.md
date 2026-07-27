@@ -3,8 +3,8 @@
 | 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                                                                                                                                                                 |
 | ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | v0.1 | 2026.07.19 SUN | 최초 작성. 흩어져 있던 코드 규약을 모음 — Base UI 문법(`01`에서), 폼 작성 규칙(`01`에서), `cn()` 병합, enum·타입 표기(`02`에서), heading 계층(`03`에서).                                                                                                                                                                                                                                  |
-| v0.3 | 2026.07.27 MON | 12단계 구현 결과 반영. **한글 IME 절 신설**(조합 중 `keydown` 가로채기 금지, `e.nativeEvent.isComposing` 가드, controlled `textarea`에서 강제 `blur()`로 조합을 확정시키지 않는다). Base UI 절에 **트리거 중첩 금지** 항목 추가(`IconButton`처럼 Tooltip을 내장한 컴포넌트를 `PopoverTrigger`에 넣지 않는다). enum 표기 절에 **`Record<ENUM, T>`로 누락을 컴파일 에러로 잡는 패턴** 추가. |
 | v0.2 | 2026.07.20 MON | 11단계 구현 결과 반영. `HTTP_METHODS`를 소문자로 변경(OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다), `isHttpMethod` 위치를 `types.ts` → `constants.ts`로 정정, 좁히기 예제에서 `toUpperCase()` 정규화 제거, heading 계층표에 `h3`의 화면 내 구획 제목 용도 추가, TS 좁히기 함정 절 신설(옵셔널 체이닝 결과는 원본을 좁히지 않는다).                          |
+| v0.3 | 2026.07.27 MON | 12단계 구현 결과 반영. **한글 IME 절 신설**(조합 중 `keydown` 가로채기 금지, `e.nativeEvent.isComposing` 가드, controlled `textarea`에서 강제 `blur()`로 조합을 확정시키지 않는다). Base UI 절에 **트리거 중첩 금지** 항목 추가(`IconButton`처럼 Tooltip을 내장한 컴포넌트를 `PopoverTrigger`에 넣지 않는다). enum 표기 절에 **`Record<ENUM, T>`로 누락을 컴파일 에러로 잡는 패턴** 추가. |
 
 > 이 문서는 **"어떻게 쓰는가"** 를 다룬다.
 > 무엇을 어디에 두는가는 `02-frontend-directories`, 화면 구조는 `03-frontend-layouts`,
@@ -34,6 +34,42 @@ shadcn을 **Base UI** 프리미티브로 쓴다. Radix 예제를 그대로 가�
 - `DropdownMenuLabel`을 `<Group>` 밖에서 쓰면 `MenuGroupContext is missing` 에러가 난다.
 - **`render`에 `<a>`(Link)를 넘기면 `nativeButton` 경고가 뜬다.** 링크는 `Button`을 쓰지 말고
   `<Link>`에 버튼 스타일 클래스를 직접 입힌다(클래스는 `04-design-tokens`). 의미상으로도 `<a>`가 맞다.
+
+---
+
+## 지울 수 있는 문법만 쓴다 (`erasableSyntaxOnly`)
+
+`tsconfig.app.json`에 `erasableSyntaxOnly`가 켜져 있다. **타입 표기를 지우기만 하면
+JS가 되는 문법**만 허용한다.
+
+Vite dev는 esbuild로 타입만 떼어내고 검사 없이 트랜스파일한다. 런타임 코드를
+만들어내는 문법이 섞이면 esbuild와 `tsc`의 결과가 갈릴 수 있어, 컴파일러가 아예 막는다.
+
+막히는 것 셋 — TS `enum`, `namespace`, **생성자 파라미터 프로퍼티**.
+
+```ts
+// ❌ TS1294. this.status = status 를 생성한다
+class ApiError extends Error {
+  constructor(readonly status: number) {
+    super();
+  }
+}
+
+// ✅ 필드를 밖에 선언하고 생성자에서 대입한다
+class ApiError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super();
+    this.status = status;
+  }
+}
+```
+
+길어지지만 이게 규약이다. 플래그를 끄면 파라미터 프로퍼티를 다시 쓸 수 있으나,
+그 순간 dev와 빌드의 동작 일치 보장이 사라진다.
+
+> 위 "TS `enum`은 쓰지 않는다"는 선택이 아니라 **강제**다. 번들 크기는 부차적인
+> 이유이고, 애초에 컴파일이 안 된다.
 
 ---
 
