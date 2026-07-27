@@ -6,8 +6,8 @@
 | v0.2 | 2026.07.17 FRI | 구조 전면 개편 — 도메인 단위(`features/`) 폐기, **화면 단위(`pages/`) + 역할 단위(`components/`, `lib/api/`)** 로 재편. 레이아웃을 `layouts/`로 분리.                                                                                                                                                                                                                                                                                              |
 | v0.3 | 2026.07.17 FRI | 헤더 조립 주체를 페이지 → **레이아웃**으로 변경.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | v0.4 | 2026.07.19 SUN | `project-form/` 내부 재편 — `ProjectFormPage`(공용) 폐기, **`ProjectCreatePage` + `ProjectSettingsPage`로 분리**(폴더는 유지). `login`·`signup`을 **`auth/`로 병합**. 묶음 기준을 "조각 공유" → **"같은 도메인"** 으로 재정의. `SpecJsonUrlField` 개명. `PageHeading` 신설. `lib/types.ts` · `constants.ts` 생성. **코드 규약은 `05-code-conventions`로, 조각 책임·헤더 조립은 `03-frontend-layouts`로 이관.**                                     |
-| v0.6 | 2026.07.27 MON | **12단계 구현 결과 반영.** `comments/` 트리를 실제와 일치시킴 — `MoveThreadPopover` → **`MoveCommentsPopover`**(이동 단위가 스레드에서 엔드포인트로 바뀜), **`AiSummaryButton` 폐기**(패널 헤더의 `IconButton`으로 흡수), `CommentContext.tsx` `mentions.ts` `reactions.ts` 신설. 누락돼 있던 `components/IconButton.tsx`, `components/TimeAgo.tsx`, `pages/spec-detail/panelMetrics.ts` 추가. `components/ui/` 목록에 12단계에서 설치한 4종 반영. |
 | v0.5 | 2026.07.20 MON | 11단계 구현 결과 반영. 신규 파일 9종 추가(`Breadcrumb`, `useMediaQuery`, `SpecPanelsContext`, `BearerTokenContext`, `ProjectOverview`, `SchemaTree`, `ExampleBlock`, `buildExample`, `useTryIt`), `HeaderBreadcrumb` → `Breadcrumb` 개명, `BackButton` 미사용 표시. **`hooks/` 폴더를 만들지 않는 근거** 절 신설. `lib/mock.ts`는 데이터 단계에서 삭제할 파일이라 트리에 올리지 않는다.                                                            |
+| v0.6 | 2026.07.27 MON | **12단계 구현 결과 반영.** `comments/` 트리를 실제와 일치시킴 — `MoveThreadPopover` → **`MoveCommentsPopover`**(이동 단위가 스레드에서 엔드포인트로 바뀜), **`AiSummaryButton` 폐기**(패널 헤더의 `IconButton`으로 흡수), `CommentContext.tsx` `mentions.ts` `reactions.ts` 신설. 누락돼 있던 `components/IconButton.tsx`, `components/TimeAgo.tsx`, `pages/spec-detail/panelMetrics.ts` 추가. `components/ui/` 목록에 12단계에서 설치한 4종 반영. |
 
 ---
 
@@ -130,13 +130,13 @@ src/
 │
 ├── lib/                              # 배관 — 도메인 무관 인프라
 │   ├── api/                          # API 호출 (데이터 단계에서 생성)
-│   │   ├── client.ts                 # fetch 래퍼: JWT 첨부, 에러 통일
+│   │   ├── client.ts                 # fetch 래퍼: JWT 첨부, 에러 통일, tokenStorage
+│   │   ├── queryClient.ts            # TanStack Query 전역 설정
 │   │   ├── auth.ts                   # login · signup · logout
 │   │   ├── projects.ts               # 프로젝트 CRUD · 멤버 · 스펙 커밋
 │   │   ├── comments.ts               # 댓글 · 리액션 · 이동 · AI 요약
 │   │   └── notifications.ts          # 알림 목록 · 읽음
 │   │
-│   ├── queryClient.ts                # TanStack Query 설정 (데이터 단계)
 │   ├── constants.ts                  # ROLE, REACTION_TYPE, NOTIFICATION_TYPE, HTTP_METHOD, isHttpMethod
 │   ├── types.ts                      # 백엔드 응답 타입
 │   ├── useMediaQuery.ts              # 도메인 무관 훅
@@ -158,10 +158,15 @@ src/
 | shadcn 컴포넌트          | `components/ui/`      |
 | 레이아웃 3종             | `layouts/`            |
 | API 호출                 | `lib/api/<도메인>.ts` |
+| API 배관 설정            | `lib/api/`            |
 | fetch 래퍼 · 유틸 · 설정 | `lib/`                |
 | 도메인 무관 훅           | `lib/`                |
 | 한 화면 전용 훅          | `pages/<화면>/`       |
 | 라우터 · Provider · 테마 | `app/`                |
+
+**`queryClient`는 `lib/api/` 안이다.** `lib/` 루트가 아니다. 재시도 조건이
+`client.ts`의 `ApiError`를 읽으므로 둘이 같이 움직인다. 떼어 놓으면 `lib/` 루트에서
+`lib/api/`를 import하는 역방향 의존이 생긴다.
 
 **애매할 때**: "이 파일을 다른 화면에서도 쓰나?"
 아니오 → `pages/`, 예 → `components/`(순수 UI) 또는 `lib/`(로직·배관).
