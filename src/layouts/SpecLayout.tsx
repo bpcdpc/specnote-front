@@ -9,13 +9,20 @@ import {
   SpecPanelsProvider,
   useSpecPanels,
 } from "@/pages/spec-detail/SpecPanelsContext";
+import { HEADER_RIGHT_WIDTH } from "@/pages/spec-detail/panelMetrics";
 import { MOCK_PROJECT } from "@/lib/mock";
 import { BearerTokenProvider } from "@/pages/spec-detail/BearerTokenContext";
 import { BearerTokenInput } from "@/pages/spec-detail/BearerTokenInput";
+import { IconButton } from "@/components/IconButton";
 
-const ICON_BUTTON =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-2 " +
-  "hover:bg-hover-icon hover:text-fg-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+// const ICON_BUTTON =
+//   "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-2 " +
+//   "hover:bg-hover-icon hover:text-fg-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+const LINK_BUTTON_CLASS_NAMES = cn(
+  "text-fg-2 hover:bg-hover-icon hover:text-fg-1",
+  "dark:hover:bg-hover-icon",
+);
 
 // 토글 버튼이 컨텍스트를 읽어야 해서 Provider 안쪽에 있어야 한다.
 // 헤더를 포함한 본문 전체를 별도 컴포넌트로 뺀다.
@@ -31,15 +38,13 @@ function SpecLayoutInner() {
   const headerLeft = (
     <>
       {/* 엔드포인트 목록 토글 — 최선두 */}
-      <button
-        type="button"
+      <IconButton
+        label="엔드포인트 목록"
         onClick={toggleSidebar}
-        className={ICON_BUTTON}
-        aria-label="엔드포인트 목록"
         aria-pressed={sidebarOpen}
       >
-        <PanelLeft className="size-4" />
-      </button>
+        <PanelLeft />
+      </IconButton>
 
       <Breadcrumb
         items={[
@@ -51,7 +56,7 @@ function SpecLayoutInner() {
       {isOwner && (
         <Link
           to={`/projects/${projectId}/settings`}
-          className={cn(ICON_BUTTON, "ml-1")}
+          className={cn(LINK_BUTTON_CLASS_NAMES, "ml-1")}
           aria-label="프로젝트 설정"
         >
           <Settings className="size-4" />
@@ -60,20 +65,28 @@ function SpecLayoutInner() {
     </>
   );
 
+  // 넓은 폭에서만 폭을 고정한다. 댓글 패널의 안쪽 내용 폭과 같은 값이라
+  // 초기 로딩 시 헤더 우측 영역과 패널 내용의 좌우 끝이 맞아떨어진다.
+  // 입력창은 w-* 고정이 아니라 flex-1 이다 — 아이콘 크기가 바뀌어도 합계가 안 깨진다.
+  // min-w-0 이 없으면 flex 자식 기본 min-width:auto 때문에 내용 폭 아래로
+  // 안 줄어들어 컨테이너를 밀어낸다.
   const headerRight = (
-    <>
-      {isWide && <BearerTokenInput className="w-64" />}
-      <button
-        type="button"
+    <div
+      className="flex items-center gap-2"
+      style={isWide ? { width: HEADER_RIGHT_WIDTH } : undefined}
+    >
+      {isWide && <BearerTokenInput className="min-w-0 flex-1" />}
+
+      <IconButton
+        label="댓글 패널"
         onClick={toggleComments}
-        className={ICON_BUTTON}
-        aria-label="댓글 패널"
         aria-pressed={commentsOpen}
       >
-        <PanelRight className="size-4" />
-      </button>
+        <PanelLeft />
+      </IconButton>
+
       <UserMenu />
-    </>
+    </div>
   );
 
   return (
@@ -84,6 +97,7 @@ function SpecLayoutInner() {
         wide={!isWide ? <BearerTokenInput className="w-full" /> : undefined}
       />
       <Outlet />
+      <Footer align="left" />
     </div>
   );
 }

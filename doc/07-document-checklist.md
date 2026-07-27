@@ -1,7 +1,11 @@
 # 문서 반영 체크리스트 (11단계 완료 시점)
 
 작성: 2026.07.20 MON
+갱신: 2026.07.27 MON — **프론트엔드 전 항목 완료.** 12단계 발생분을 아래에 추가하고 함께 닫았다.
 범위: 백엔드 문서 4종 + 프론트 문서 5종 + 자체 문서 1종
+
+> **상태**: 프론트엔드(7~12번) 완료. 백엔드(1~6번)는 별도 레포라 이 회차 범위 밖이며
+> 미체크 상태를 유지한다. 백엔드 반영 시 이 파일이 아니라 백엔드 레포 쪽에서 관리한다.
 
 > 한 파일씩 열어 반영하고 체크한다.
 > **순서 추천**: 백엔드(2, 3) → 백엔드(9, 10, 11) → 프론트(05 → 02 → 04 → 03 → 01) → 06
@@ -127,50 +131,50 @@
 
 ## 7. `05-code-conventions` (v0.1 → v0.2)
 
-- [ ] `HTTP_METHODS`를 **소문자**로 변경
+- [x] `HTTP_METHODS`를 **소문자**로 변경
       근거 — OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다
-- [ ] `isHttpMethod` 위치를 `types.ts` → **`constants.ts`**로 정정
+- [x] `isHttpMethod` 위치를 `types.ts` → **`constants.ts`**로 정정
       가드가 `HTTP_METHODS` 배열에서 파생되므로 배열과 붙어 있어야 한다
-- [ ] 좁히기 예제에서 `toUpperCase()` 정규화 제거 (불필요해짐)
-- [ ] heading 계층표에 `h3` 용도 추가 — 목록 아이템 제목 외에
+- [x] 좁히기 예제에서 `toUpperCase()` 정규화 제거 (불필요해짐)
+- [x] heading 계층표에 `h3` 용도 추가 — 목록 아이템 제목 외에
       **화면 내 구획 제목**(Parameters / Request Body / Responses)
-- [ ] **TS 좁히기 함정 추가** — `isObject(a?.b)`는 `a`를 좁혀주지 않는다.
+- [x] **TS 좁히기 함정 추가** — `isObject(a?.b)`는 `a`를 좁혀주지 않는다.
       옵셔널 체이닝 결과를 변수로 받아 가드에 넘긴다
 
 ## 8. `02-frontend-directories` (v? → 다음 버전)
 
 ### 추가된 파일
 
-- [ ] `components/Breadcrumb.tsx`
-- [ ] `lib/useMediaQuery.ts`
-- [ ] `pages/spec-detail/SpecPanelsContext.tsx`
-- [ ] `pages/spec-detail/BearerTokenContext.tsx`
-- [ ] `pages/spec-detail/ProjectOverview.tsx`
-- [ ] `pages/spec-detail/SchemaTree.tsx`
-- [ ] `pages/spec-detail/ExampleBlock.tsx`
-- [ ] `pages/spec-detail/buildExample.ts`
-- [ ] `pages/spec-detail/useTryIt.ts`
+- [x] `components/Breadcrumb.tsx`
+- [x] `lib/useMediaQuery.ts`
+- [x] `pages/spec-detail/SpecPanelsContext.tsx`
+- [x] `pages/spec-detail/BearerTokenContext.tsx`
+- [x] `pages/spec-detail/ProjectOverview.tsx`
+- [x] `pages/spec-detail/SchemaTree.tsx`
+- [x] `pages/spec-detail/ExampleBlock.tsx`
+- [x] `pages/spec-detail/buildExample.ts`
+- [x] `pages/spec-detail/useTryIt.ts`
 
 `lib/mock.ts`는 **추가하지 않는다.** 데이터 단계에서 삭제할 파일이라
 문서에 올리면 지울 때 문서를 또 고쳐야 한다.
 
 ### 제거 / 개명
 
-- [ ] `components/BackButton.tsx` — 미사용 표시 (데모 후 정리)
-- [ ] `HeaderBreadcrumb.tsx` → `Breadcrumb.tsx` 개명 반영
+- [x] `components/BackButton.tsx` — 미사용 표시 (데모 후 정리)
+- [x] `HeaderBreadcrumb.tsx` → `Breadcrumb.tsx` 개명 반영
 
 ### 원칙 보강
 
-- [ ] **`hooks/` 폴더를 만들지 않는 근거**
+- [x] **`hooks/` 폴더를 만들지 않는 근거**
       배치 기준은 "소비처가 하나인가 여럿인가"이지 파일 형태가 아니다.
       도메인 무관 훅은 `lib/`, 화면 전용 훅은 `pages/<화면>/`
-- [ ] 목 데이터도 같은 기준을 따른다는 한 줄
+- [x] 목 데이터도 같은 기준을 따른다는 한 줄
 
 ## 9. `04-design-tokens` (v0.4 → v0.5)
 
 ### 메서드 뱃지 (전면 개정)
 
-- [ ] 색 5종 교체
+- [x] 색 5종 교체
 
   | 메서드 | 라이트(배경) | 다크(글자) |
   | ------ | ------------ | ---------- |
@@ -180,53 +184,53 @@
   | PATCH  | `#9a3beb`    | `#d16eff`  |
   | DELETE | `#d6006a`    | `#ff358d`  |
 
-- [ ] **라이트 = 솔리드**(색 배경 + 흰 글자) / **다크 = 색 글자 + 같은 색 10% 배경**
-- [ ] "박스 없음, 컬러 텍스트만" 방침 폐기. `bg-*` 토큰 부활, `border-*` 제거
-- [ ] 표시용 `uppercase` 명시 — 저장값은 소문자
-- [ ] 가운데 정렬. 솔리드 박스에서 짧은 메서드가 왼쪽에 쏠려 보이지 않게
-- [ ] **PUT 시안 / PATCH 보라가 업계 관례와 어긋난다**는 근거
+- [x] **라이트 = 솔리드**(색 배경 + 흰 글자) / **다크 = 색 글자 + 같은 색 10% 배경**
+- [x] "박스 없음, 컬러 텍스트만" 방침 폐기. `bg-*` 토큰 부활, `border-*` 제거
+- [x] 표시용 `uppercase` 명시 — 저장값은 소문자
+- [x] 가운데 정렬. 솔리드 박스에서 짧은 메서드가 왼쪽에 쏠려 보이지 않게
+- [x] **PUT 시안 / PATCH 보라가 업계 관례와 어긋난다**는 근거
       (Swagger UI는 PUT 주황, PATCH 민트)
-- [ ] `FallbackBadge` 신설 — 5종 밖(head/options/trace)은 무채색.
+- [x] `FallbackBadge` 신설 — 5종 밖(head/options/trace)은 무채색.
       관례 없는 메서드에 임의 색을 주면 5종의 색 규칙이 흐려진다
 
 ### 인풋
 
-- [ ] 다크 값 — `--sn-input-border: #212121`, `--sn-input-bg: #000000`
-- [ ] **"보더는 반드시 있어야 한다(접근성)" 근거 재검토**
+- [x] 다크 값 — `--sn-input-border: #212121`, `--sn-input-bg: #000000`
+- [x] **"보더는 반드시 있어야 한다(접근성)" 근거 재검토**
       현재 값이 WCAG 1.4.11의 3:1에 미달이라 문장이 실제를 반영하지 못한다.
       순검정 대비 — `#212121` 1.6:1, `#2b2b2b` 2.1:1, 통과하려면 `#3a3a3a`(3.0:1)
 
 ### 보더
 
-- [ ] 좌측 사이드바 "보더 없음" 유지. **리사이즈 구분선**이 호버 시에만 드러난다는 항목 추가
-- [ ] 댓글 패널 `border-l` 폐기 — 구분선이 그 역할을 한다
+- [x] 좌측 사이드바 "보더 없음" 유지. **리사이즈 구분선**이 호버 시에만 드러난다는 항목 추가
+- [x] 댓글 패널 `border-l` 폐기 — 구분선이 그 역할을 한다
 
 ## 10. `03-frontend-layouts` (v0.4 → v0.5) — 가장 큰 개정
 
 ### 라우트
 
-- [ ] SpecDetail을 둘로 분리
+- [x] SpecDetail을 둘로 분리
       `/projects/:projectId` (개요) / `/projects/:projectId/endpoints/:endpointId` (상세)
-- [ ] 파라미터명 `:id` → `:projectId` 전면 개명. 설정 화면 경로 포함
-- [ ] **라우터 구조 주의사항** — 파라미터를 쓰는 레이아웃은 `path`를 부모 라우트에 둬야 한다.
+- [x] 파라미터명 `:id` → `:projectId` 전면 개명. 설정 화면 경로 포함
+- [x] **라우터 구조 주의사항** — 파라미터를 쓰는 레이아웃은 `path`를 부모 라우트에 둬야 한다.
       자식에만 두면 레이아웃의 `useParams()`가 비어 링크가 `/projects/undefined`로 나간다
 
 ### 3컬럼 (전면 교체)
 
-- [ ] 왼쪽 고정폭 → **리사이즈 + 접기**. 기본 300px, min 240, max 400
-- [ ] 오른쪽 **접기 추가**. 기본 300px, min 240, max 560
-- [ ] 중앙 min 320px
-- [ ] **`min-w-[900px]` 가로 스크롤 폐기**
-- [ ] `lg`(1024px) 분기 신설
+- [x] 왼쪽 고정폭 → **리사이즈 + 접기**. 기본 300px, min 240, max 400
+- [x] 오른쪽 **접기 추가**. 기본 300px, min 240, max 560
+- [x] 중앙 min 320px
+- [x] **`min-w-[900px]` 가로 스크롤 폐기**
+- [x] `lg`(1024px) 분기 신설
   - `≥ lg` 밀어내기 — 접으면 중앙이 넓어진다
   - `< lg` 덮기 — 양쪽 오버레이(`w-full max-w-2xl`), 기본 닫힘, 하나만 열림, 백드롭/Esc
-- [ ] **1024 근거** — 기본폭 합계 `240 + 320 + 300 + 구분선 2 = 862px`이라
+- [x] **1024 근거** — 기본폭 합계 `240 + 320 + 300 + 구분선 2 = 862px`이라
       `md`(768)로는 768~862 구간이 깨진다
-- [ ] 와이어프레임 v0.1 차이 항목 갱신 — 양쪽 리사이즈가 **오히려 맞게 됐다**
+- [x] 와이어프레임 v0.1 차이 항목 갱신 — 양쪽 리사이즈가 **오히려 맞게 됐다**
 
 ### 브레드크럼 (신규)
 
-- [ ] `←` 뒤로가기 → **브레드크럼** 전면 교체. 헤더 슬롯 표 4행 갱신
+- [x] `←` 뒤로가기 → **브레드크럼** 전면 교체. 헤더 슬롯 표 4행 갱신
 
   | 화면             | 브레드크럼                      |
   | ---------------- | ------------------------------- |
@@ -235,37 +239,37 @@
   | project-settings | `Dashboard / 프로젝트명 / 설정` |
   | SpecDetail       | `Dashboard / 프로젝트명`        |
 
-- [ ] 마지막 조각이 `h1`, `to`가 있으면 링크로 감싼다
-- [ ] SpecLayout 좌측 — **목록 토글 → 브레드크럼 → ⚙(Owner)**
-- [ ] 우측 — **Bearer 입력 → 댓글 토글 → UserMenu**
+- [x] 마지막 조각이 `h1`, `to`가 있으면 링크로 감싼다
+- [x] SpecLayout 좌측 — **목록 토글 → 브레드크럼 → ⚙(Owner)**
+- [x] 우측 — **Bearer 입력 → 댓글 토글 → UserMenu**
 
 ### 반응형 / 푸터 / 스크롤
 
-- [ ] 브레이크포인트가 `md` 하나 → **`md`(개념) + `lg`(실제 분기)**
+- [x] 브레이크포인트가 `md` 하나 → **`md`(개념) + `lg`(실제 분기)**
       Bearer 2행도 `lg` 기준이다(`SpecPanelsContext.isWide` 공유).
       768~1024는 3컬럼도 오버레이라 헤더에 여유가 없어 같은 값이 맞다
-- [ ] 푸터 "배경 없음" → 텍스트 폭만큼 배경. `pointer-events-none` 유지
-- [ ] 스크롤 구조 절에 `overscroll-none` 명시
-- [ ] 모바일 원칙 — "안 들어가면 가로 스크롤" → **"좁으면 덮기 모드"**.
+- [x] 푸터 "배경 없음" → 텍스트 폭만큼 배경. `pointer-events-none` 유지
+- [x] 스크롤 구조 절에 `overscroll-none` 명시
+- [x] 모바일 원칙 — "안 들어가면 가로 스크롤" → **"좁으면 덮기 모드"**.
       차단 화면 금지는 유지
 
 ## 11. `01-frontend-stack`
 
-- [ ] 구현 순서표 11단계 → ✅
-- [ ] **"미결 / 대기"에서 로그아웃 API 줄 삭제**
-- [ ] 미결에 `GET /api/users/me` 부재 추가 (백엔드 반영 후 제거)
-- [ ] `react-resizable-panels` **v4 기준 갱신**
+- [x] 구현 순서표 11단계 → ✅
+- [x] **"미결 / 대기"에서 로그아웃 API 줄 삭제**
+- [x] 미결에 `GET /api/users/me` 부재 추가 (백엔드 반영 후 제거)
+- [x] `react-resizable-panels` **v4 기준 갱신**
       `PanelGroup`→`Group`, `PanelResizeHandle`→`Separator`,
       `direction`→`orientation`, `tagName` 삭제, px 단위 지원
-- [ ] `react-markdown`은 12단계 그대로
-- [ ] "확정된 제약"의 와이어프레임 차이 항목 갱신 (10번과 동일 내용)
+- [x] `react-markdown`은 12단계 그대로
+- [x] "확정된 제약"의 와이어프레임 차이 항목 갱신 (10번과 동일 내용)
 
 ## 12. `06-spec-detail-plan` (v0.1 → v0.2)
 
-- [ ] 전제의 3컬럼 표 갱신, `min-w-[900px]` 폐기, `lg` 분기
-- [ ] 파일 목록 갱신 — `mock.ts`가 `lib/`으로, 신규 6종 추가
-- [ ] 11-1 ~ 11-9 완료 표시
-- [ ] "결정 대기" 4건의 결론 기록
+- [x] 전제의 3컬럼 표 갱신, `min-w-[900px]` 폐기, `lg` 분기
+- [x] 파일 목록 갱신 — `mock.ts`가 `lib/`으로, 신규 6종 추가
+- [x] 11-1 ~ 11-9 완료 표시
+- [x] "결정 대기" 4건의 결론 기록
 
   | 결정                        | 결론                                      |
   | --------------------------- | ----------------------------------------- |
@@ -275,7 +279,7 @@
   | example 자동 생성           | 요청 바디만 조립, 응답은 스펙에 있을 때만 |
   | Bearer 토큰 보관            | `useState`. 저장소 없음                   |
 
-- [ ] 구현하며 확정된 설계 근거 추가
+- [x] 구현하며 확정된 설계 근거 추가
   - 순환 감지 책임 분리 — `$ref` 체인은 `useSpecCache`, 구조적 순환은 `SchemaTree`
   - Try it 입력을 본문에 통합(Swagger의 모드 토글 없음) → `SchemaTree`를 두 벌로 안 만든다
   - 파라미터는 `SchemaTree`를 쓰지 않는다. 거의 항상 스칼라라 재귀가 불필요
@@ -295,9 +299,74 @@
 
 ---
 
+# 12단계 발생분 (2026.07.27 함께 반영)
+
+체크리스트 작성 이후 12단계(댓글)를 만들며 나온 것들이다.
+대기열에 명시적으로 올라간 것은 앞의 2건이고, 나머지는 코드와 문서를 대조해 찾았다.
+
+## 13. `04-design-tokens` (v0.5 → v0.6)
+
+- [x] **리액션 4종 표시 정의 신설** — 이모지와 라벨. 12단계 착수 전 "12-5에서 정하면서
+      토큰 문서에 반영"으로 미뤄뒀던 항목
+- [x] **멘션 칩을 amber로 확정** — "파랑을 쓴다" 표에서 멘션을 뺀다.
+      사용자가 남긴 것과 시스템이 강조한 것을 색으로 가른다
+- [x] `index.css` 실측 대조 결과 반영
+  - 보더 라이트 `#d4d4d4` → `#cbcbcb`, 다크 `#2b2b2b` → `#313131`
+  - 인풋 보더 라이트 `#dcdcdc` → `#d4d4d4`, 다크 `#212121` → `#303030`
+  - hover-ghost `#f7f7f7`/`#141414` → `#f4f4f4`/`#1c1c1c`
+  - hover-icon `#f0f0f0`/`#1a1a1a` → `#ebebeb`/`#212121`
+  - `--sn-input-border-focus` 신설 (문서에 없던 토큰)
+  - 다크 메서드 배경 알파 10% → **15%**(`26`)
+  - 메서드 `border-*`는 "제거"가 아니라 `transparent`로 존속
+  - `--destructive`는 DELETE 색과 **다른 값**
+- [x] WCAG 문단 재작성 — 옛 값 기준 수치를 걷어내고, 미달을 의도적으로 감수한다는
+      판단만 남긴다. 접근성을 보더의 근거로 쓰지 않는다
+- [x] 댓글 하이라이트 `@keyframes` 기록
+- [x] `--radius-md: 0.365rem` 오타 의심 기록
+
+## 14. `01-frontend-stack` (v0.5 → v0.6)
+
+- [x] **멘션 저장 형식 전면 정정** — v0.5의 "markdown 링크를 저장한다"가 틀렸다.
+      `@userId|` 토큰으로 저장하고 렌더 시점에 링크로 바꾼다
+- [x] **Cmd+Enter 제출 미도입**을 미결에 추가 (한글 IME 충돌, 경위 포함)
+- [x] **파일 첨부 보류**를 미결에 추가
+- [x] `remark-gfm`, `remark-breaks` 스택 반영
+- [x] 구현 순서표 12단계 → 🔶
+
+## 15. `02-frontend-directories` (v0.5 → v0.6)
+
+- [x] `MoveThreadPopover` → `MoveCommentsPopover` (이동 단위 변경)
+- [x] `AiSummaryButton` 삭제 (헤더 `IconButton`으로 흡수)
+- [x] `CommentContext.tsx`, `mentions.ts`, `reactions.ts` 추가
+- [x] 누락 파일 3종 추가 — `IconButton`, `TimeAgo`, `panelMetrics.ts`
+- [x] `components/ui/`에 `alert-dialog`, `command`, `toast` 추가
+- [x] `IconButton`을 공용으로 올린 근거 절 신설
+
+## 16. `03-frontend-layouts` (v0.5 → v0.6)
+
+- [x] 댓글 패널 내부 구조 절 신설 — sticky 3단, 리마운트, 미선택 상태
+- [x] 13단계 딥링크가 12단계 하이라이트 기제를 재사용함을 명시
+
+## 17. `05-code-conventions` (v0.2 → v0.3)
+
+- [x] **한글 IME 절 신설** — 조합 중 `keydown` 가로채기 금지, 강제 `blur()` 금지
+- [x] Base UI 절에 트리거 중첩 금지, 팝오버 선택은 `onMouseDown`
+- [x] `Record<ENUM, T>` 패턴
+
+## 18. `06-spec-detail-plan` (v0.2 → v0.3)
+
+- [x] 11단계 전용으로 범위 고정, `08-comments-plan` 포인터
+
+## 19. `08-comments-plan` (신규 v0.1)
+
+- [x] 12단계 계획과 구현 결과. 12-1~12-9, 확정된 결정 10건, 남은 것
+
+---
+
 # 반영 후
 
 - [ ] 백엔드 문서 커밋 — `docs: users/me 추가, Try it out 제약 반영`
-- [ ] 프론트 문서 커밋 — `docs: 11단계 완료분 반영`
+- [x] 프론트 문서 커밋 — `docs: 11단계 완료분 반영`
+- [ ] 프론트 문서 커밋 — `docs: 12단계 완료분 반영` (브랜치 `docs/comments`)
 - [ ] PR 본문의 "문서 미반영" 항목 제거
-- [ ] `findMe` 구현을 팀에 요청 (담당 배정은 하지 않는다)
+- [x] ~~`findMe` 구현을 팀에 요청~~ — **구현 완료(2026.07.27 확인).** 문서 반영(3, 4, 5번)만 남았다

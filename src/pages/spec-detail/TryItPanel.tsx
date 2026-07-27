@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TryItError, TryItResponse } from "@/pages/spec-detail/useTryIt";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // TryItPanel — 실행 버튼과 실제 응답
 //
@@ -37,18 +38,11 @@ export function TryItPanel({
     <section className="flex flex-col gap-3">
       {/* FR-4.5 — 변경 계열만. GET·HEAD 에는 안 나온다. */}
       {mutating && (
-        <label className="flex items-start gap-2 text-sm text-fg-2">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => onConfirm(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 accent-[var(--sn-accent)]"
-          />
+        <label className="flex items-center gap-2 text-xs text-fg-3">
+          <Checkbox checked={confirmed} onCheckedChange={onConfirm} />
           <span>
-            <span className="font-medium text-fg-1">
-              {method.toUpperCase()}
-            </span>{" "}
-            요청은 실제 서버의 데이터를 변경할 수 있습니다. 확인했습니다.
+            {method.toUpperCase()} 요청은 실제 서버의 데이터를 변경할 수 있음을
+            확인했습니다.
           </span>
         </label>
       )}
