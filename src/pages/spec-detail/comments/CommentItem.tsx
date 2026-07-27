@@ -1,5 +1,5 @@
 import { TimeAgo } from "@/components/TimeAgo";
-import { PencilLine, Trash2, Reply, CornerDownRight } from "lucide-react";
+import { PencilLine, Trash2, CornerDownRight } from "lucide-react";
 import { ReactionBar } from "./ReactionBar";
 import { CommentContent } from "./CommentContent";
 import { CommentEditor } from "./CommentEditor";

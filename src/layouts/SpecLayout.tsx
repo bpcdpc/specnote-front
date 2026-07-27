@@ -82,7 +82,7 @@ function SpecLayoutInner() {
         onClick={toggleComments}
         aria-pressed={commentsOpen}
       >
-        <PanelLeft />
+        <PanelRight />
       </IconButton>
 
       <UserMenu />

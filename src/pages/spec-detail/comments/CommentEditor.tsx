@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { AtSign, Hash, Code, SquareCode, List, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/IconButton";

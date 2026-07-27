@@ -26,8 +26,8 @@ import {
 import type {
   CommentTree,
   MentionIds,
-  MemberMention,
-  EndpointMention,
+  UserRef,
+  EndpointRef,
   EndpointSummary,
 } from "@/lib/types";
 
@@ -106,8 +106,8 @@ function CommentPanelInner() {
   const resolveMentions = (
     mentions: MentionIds,
   ): {
-    memberMentions: MemberMention[];
-    endpointMentions: EndpointMention[];
+    memberMentions: UserRef[];
+    endpointMentions: EndpointRef[];
   } => ({
     memberMentions: members
       .filter((m) => mentions.userIds.includes(m.id))

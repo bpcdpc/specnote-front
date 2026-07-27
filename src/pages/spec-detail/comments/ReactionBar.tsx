@@ -22,13 +22,11 @@ type ReactionBarProps = {
 // 4종을 항상 다 그리지 않는다. 패널 최소폭이 240px 이라 좌우 여백을 빼면
 // 176px 밖에 안 남고, 칩 4개가 늘 자리를 차지하면 목록이 시끄럽다.
 //
-// 팝오버 하나가 두 일을 맡는다 — 위쪽에서 추가/해제하고, 아래쪽에서 누가
-// 남겼는지 본다. 이름을 툴팁으로 빼지 않은 이유는 툴팁이 터치 기기에서
-// 안 열리기 때문이다. SpecNote 는 좁은 폭에서도 오버레이로 동작하므로
-// 툴팁에만 있는 정보는 모바일에서 통째로 사라진다.
+// 팝오버 하나가 두 일을 맡는다 — 위쪽에서 추가/해제하고, 아래쪽에서 누가 남겼는지 본다.
+// 이름을 툴팁으로 빼지 않은 이유는 툴팁이 터치 기기에서 안 열리기 때문이다.
+// SpecNote 는 좁은 폭에서도 오버레이로 동작하므로 툴팁에만 있는 정보는 모바일에서 통째로 사라진다.
 //
-// 칩 클릭은 토글이다. 거기에 "누가 남겼나 보기"를 얹으면 한 요소에 동작이
-// 둘이 되어, 목록을 보려다 내 리액션이 달린다.
+// 칩 클릭은 토글이다. 거기에 "누가 남겼나 보기"를 얹으면 한 요소에 동작이 둘이 되어, 목록을 보려다 내 리액션이 달린다.
 //
 // 삭제된 댓글에도 그대로 붙는다(FR-5.3). 호출부가 판단하지 않는다.
 export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
@@ -36,10 +34,6 @@ export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
 
   const summaryOf = (type: REACTION_TYPE) =>
     reactions.find((r) => r.type === type);
-
-  // 이름이 하나라도 있으면 아래 구획을 그린다.
-  // 백엔드가 users 를 안 주면 구획째 사라진다(옵셔널 필드).
-  const named = reactions.filter((r) => r.users && r.users.length > 0);
 
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -122,15 +116,15 @@ export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
           </div>
 
           {/* 아래 — 누가 남겼는지 */}
-          {named.length > 0 && (
+          {reactions.length > 0 && (
             <ul className="flex flex-col gap-1.5 border-t border-border pt-2">
-              {named.map((reaction) => (
+              {reactions.map((reaction) => (
                 <li key={reaction.type} className="flex gap-2 text-xs">
                   <span aria-hidden="true" className="shrink-0">
                     {REACTION_META[reaction.type].emoji}
                   </span>
                   <span className="min-w-0 break-words text-fg-2">
-                    {reaction.users?.map((u) => u.userName).join(", ")}
+                    {reaction.users.map((u) => u.userName).join(", ")}
                   </span>
                 </li>
               ))}

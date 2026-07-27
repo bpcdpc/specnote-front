@@ -8,6 +8,8 @@ import {
   MOCK_PROJECT,
   MOCK_PROJECT_VIEW,
   getMockEndpointDetail,
+  MOCK_CURRENT_USER,
+  MOCK_PROJECT_MEMBERS,
 } from "@/lib/mock";
 import { ProjectOverview } from "./ProjectOverview";
 import { cn } from "@/lib/utils";
@@ -17,7 +19,6 @@ import { SpecUpdateBanner } from "./SpecUpdateBanner";
 import { CommentPanel } from "./comments/CommentPanel";
 import type { SpecCache } from "./useSpecCache";
 import type { ProjectView } from "@/lib/types";
-import { MOCK_CURRENT_USER, MOCK_PROJECT_MEMBERS } from "@/lib/mock";
 
 // SpecDetailPage — 3컬럼 본문
 //
@@ -75,7 +76,7 @@ export function SpecDetailPage() {
           <CommentPanel
             me={MOCK_CURRENT_USER}
             isOwner={isOwner}
-            members={MOCK_PROJECT_MEMBERS}
+            members={MOCK_PROJECT_MEMBERS.map((m) => m.user)}
             // 멘션 대상은 삭제되지 않은 엔드포인트로 한정된다(FR-8.3).
             // 여기서 걸러 보내면 에디터가 다시 판단하지 않는다.
             endpoints={projectView.endpoints.filter((e) => !e.isDeleted)}

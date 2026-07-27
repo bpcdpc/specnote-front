@@ -18,6 +18,7 @@ import type {
   ProjectSummary,
   ProjectView,
   PublicUser,
+  MemberView,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -458,14 +459,20 @@ export const MOCK_PROJECT_VIEW_AS_MEMBER: ProjectView = {
 
 // 멘션·작성자로 등장하는 팀원.
 const MOCK_MEMBERS = {
-  binyoung: MOCK_CURRENT_USER,
-  huikyung: { id: 2, userName: "희경", email: "huikyung@example.com" },
-  hyebin: { id: 3, userName: "혜빈", email: "hyebin@example.com" },
-} satisfies Record<string, PublicUser>;
+  binyoung: { user: MOCK_CURRENT_USER, role: "OWNER" },
+  huikyung: {
+    user: { id: 2, userName: "희경", email: "huikyung@example.com" },
+    role: "MEMBER",
+  },
+  hyebin: {
+    user: { id: 3, userName: "혜빈", email: "hyebin@example.com" },
+    role: "MEMBER",
+  },
+} satisfies Record<string, MemberView>;
 
 // 멘션 자동완성 후보. 실제로는 GET /api/projects/:id/members 응답이다.
 // AI 계정은 여기 없다 — 멘션 대상이 아니다(UC-13).
-export const MOCK_PROJECT_MEMBERS: PublicUser[] = Object.values(MOCK_MEMBERS);
+export const MOCK_PROJECT_MEMBERS: MemberView[] = Object.values(MOCK_MEMBERS);
 
 // 전역 AI 계정. 초대·멘션 대상이 아니라(UC-13) MOCK_MEMBERS 에 넣지 않는다.
 // 작성자로만 등장하며, 화면 표시는 author 가 아니라 isAiGenerated 가 판정한다.
@@ -489,7 +496,7 @@ const MOCK_COMMENTS: CommentTree[] = [
     content:
       "정원이 꽉 찼을 때 에러 코드가 명세에 없는데 어떻게 처리되나요?\n지금은 500이 떨어져서 프론트에서 구분이 안 됩니다.",
     isDeleted: false,
-    author: MOCK_MEMBERS.binyoung,
+    author: MOCK_MEMBERS.binyoung.user,
     isAiGenerated: false,
     createdAt: "2026-07-19T02:14:00.000Z",
     updatedAt: "2026-07-19T02:14:00.000Z",
@@ -521,7 +528,7 @@ const MOCK_COMMENTS: CommentTree[] = [
         content:
           '423 Locked 로 변경했습니다. 명세도 같이 올려두겠습니다.\n\n```json\n{ "message": "이미 신청한 강의입니다." }\n```',
         isDeleted: false,
-        author: MOCK_MEMBERS.hyebin,
+        author: MOCK_MEMBERS.hyebin.user,
         isAiGenerated: false,
         createdAt: "2026-07-19T02:31:00.000Z",
         updatedAt: "2026-07-19T03:05:00.000Z",
@@ -548,7 +555,7 @@ const MOCK_COMMENTS: CommentTree[] = [
         content:
           "@2| 수강 취소 쪽도 같은 문제 있어요. #19| 확인 부탁드립니다. `isDeleted` 플래그도 같이 봐주세요.",
         isDeleted: false,
-        author: MOCK_MEMBERS.binyoung,
+        author: MOCK_MEMBERS.binyoung.user,
         isAiGenerated: false,
         createdAt: "2026-07-19T03:40:00.000Z",
         updatedAt: "2026-07-19T03:40:00.000Z",
@@ -569,7 +576,7 @@ const MOCK_COMMENTS: CommentTree[] = [
     parentId: null,
     content: "삭제된 댓글입니다",
     isDeleted: true,
-    author: MOCK_MEMBERS.huikyung,
+    author: MOCK_MEMBERS.huikyung.user,
     isAiGenerated: false,
     createdAt: "2026-07-19T05:02:00.000Z",
     updatedAt: "2026-07-19T05:20:00.000Z",
@@ -591,7 +598,7 @@ const MOCK_COMMENTS: CommentTree[] = [
         content:
           "네 그 부분은 다음 스프린트로 넘기죠.\n\n```\nGET /api/projects/1/endpoints/16/comments?include=reactions,mentions&sort=createdAt\n```\n\nhttps://github.com/bpcdpc/specnote-back/issues/12",
         isDeleted: false,
-        author: MOCK_MEMBERS.hyebin,
+        author: MOCK_MEMBERS.hyebin.user,
         isAiGenerated: false,
         createdAt: "2026-07-19T05:11:00.000Z",
         updatedAt: "2026-07-19T05:11:00.000Z",
