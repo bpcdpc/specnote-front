@@ -1,5 +1,4 @@
-// import { Link, useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -13,17 +12,20 @@ import {
 import { useState } from "react";
 import { signup } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/app/AuthContext";
 
 // SignupPage — 회원가입
 //
 // { userName, email, password } → PublicUser. 토큰은 발급되지 않는다.
+// 가입 직후 같은 정보로로 login 을 한 번 더 부른다
 //
 // 에러는 두 갈래다.
 // 409 — 이메일 중복. 필드가 확정이라 이메일 아래 FieldError 로 붙인다.
 // 그 외 — 필드를 특정할 수 없어 폼 단위로 한 줄 띄운다.
 
 export function SignupPage() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,7 +43,8 @@ export function SignupPage() {
 
     try {
       await signup({ email, password, userName });
-      // navigate("/login");
+      await login({ email, password });
+      navigate("/", { replace: true });
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         setEmailError(e.message);

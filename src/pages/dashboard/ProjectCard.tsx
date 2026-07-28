@@ -6,8 +6,6 @@ type ProjectCardProps = {
 };
 
 // ProjectCard — 대시보드 프로젝트 카드 (대시보드 전용)
-//
-// 제목 / description(없으면 자리만) / 하단: role 뱃지 + version, oasVersion
 export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link

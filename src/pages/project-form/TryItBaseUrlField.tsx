@@ -1,15 +1,45 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldSet, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
+import { updateProject } from "@/lib/api/projects";
+import { ApiError } from "@/lib/api/client";
 
-// TryItBaseUrlField — Try it out 요청용 base URL (project-form 전용, 설정 화면)
+type TryItBaseUrlFieldProps = {
+  projectId: number;
+  initialUrl: string;
+};
+
+// TryItBaseUrlField — Try it out 요청용 base URL (설정 화면 전용)
 //
-// 선택 항목(FR-4.5). 미입력 시 Try it out 만 비활성, 스펙 열람·댓글은 정상.
-// Owner 만 수정 가능(FR-4.7).
-//
-// TODO(데이터 단계): 기존값 useProject(id).tryItBaseUrl 로 초기화 →
-//   저장 시 updateProject(id, { tryItBaseUrl }).
-export function TryItBaseUrlField() {
+// 선택 항목(FR-4.5). 미입력이면 Try it out 만 비활성이고 스펙 열람과 댓글은 정상이다.
+// PATCH 로 고칠 수 있는 유일한 필드다 — title, version 등은 스펙 재커밋으로만 바뀐다.
+export function TryItBaseUrlField({
+  projectId,
+  initialUrl,
+}: TryItBaseUrlFieldProps) {
+  const queryClient = useQueryClient();
+
+  // 부모가 데이터를 받은 뒤에만 이 컴포넌트를 그리므로 initializer 로 충분하다.
+  const [url, setUrl] = useState(initialUrl);
+  const [error, setError] = useState<string | null>(null);
+
+  const { mutate, isPending } = useMutation({
+    // 빈 문자열은 undefined 로 바꿔 보낸다. "지우기"와 "안 건드림"이 갈린다.
+    mutationFn: () =>
+      updateProject(projectId, { tryItBaseUrl: url.trim() || null }),
+    onSuccess: () => {
+      // 진입 응답의 tryItBaseUrl 이 바뀐다. 목록의 메타는 그대로다.
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      toast.add({ title: "저장했습니다", type: "success" });
+    },
+    onError: (e) => {
+      setError(e instanceof ApiError ? e.message : "저장하지 못했습니다.");
+    },
+  });
+
   return (
     <FieldSet>
       <FieldGroup>
@@ -20,11 +50,26 @@ export function TryItBaseUrlField() {
               id="baseUrl"
               autoComplete="off"
               placeholder="https://dev.example.com/api"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError(null);
+              }}
+              aria-invalid={Boolean(error)}
             />
-            <Button variant="outline" className="shrink-0">
-              저장
+            <Button
+              variant="outline"
+              className="shrink-0"
+              onClick={() => mutate()}
+            >
+              {isPending ? "저장 중…" : "저장"}
             </Button>
           </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </Field>
       </FieldGroup>
     </FieldSet>

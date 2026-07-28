@@ -429,6 +429,7 @@ export const MOCK_PROJECT_VIEW: ProjectView = {
   project: MOCK_PROJECT,
   // 원본 스펙의 servers 가 빈 배열이라 자동 추출이 불가능하다.
   // 프로젝트 생성 시 Owner 가 직접 입력한 값이다.
+  specJsonUrl: "https://test.com/spec-json",
   // tryItBaseUrl: "https://course-mgmt.example.com/api",
   tryItBaseUrl: "https://jsonplaceholder.typicode.com",
   components: MOCK_COMPONENTS,
