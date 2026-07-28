@@ -7,23 +7,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/app/ThemeContext";
-import { MOCK_CURRENT_USER } from "@/lib/mock";
+import { useAuth } from "@/app/AuthContext";
 
 // UserMenu — 헤더 우측 유저 메뉴
 //
 // 아바타 클릭 → 드롭다운(이름, 이메일, 알림, 테마 토글, 로그아웃).
 //
-// TODO(데이터 단계):
-//   - MOCK_CURRENT_USER 를 useAuth().user 로 교체
+// TODO
 //   - 알림 목록·미확인 개수를 useNotifications() 로 교체 (빨간 점 표시)
-//   - 로그아웃을 lib/api/auth 의 logout() 호출로 교체
-// 지금은 목. 테마 토글만 실제 동작한다.
 export function UserMenu() {
+  const { me, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const user = MOCK_CURRENT_USER;
+  if (!me) return null;
+
   // 이니셜은 백엔드에 없다. userName 에서 파생시킨다.
-  const initial = user.userName.charAt(0);
+  const initial = me.userName.charAt(0);
 
   return (
     <DropdownMenu>
@@ -40,8 +39,8 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-56">
         {/* 이름, 이메일 — 단순 표시 (Label 컴포넌트 아님) */}
         <div className="flex flex-col gap-0.5 px-2 py-1.5">
-          <span className="text-sm font-medium text-fg-1">{user.userName}</span>
-          <span className="text-xs text-fg-3">{user.email}</span>
+          <span className="text-sm font-medium text-fg-1">{me.userName}</span>
+          <span className="text-xs text-fg-3">{me.email}</span>
         </div>
 
         {/* 알림 — 목. 데이터 단계에서 실제 목록으로 */}
@@ -62,8 +61,7 @@ export function UserMenu() {
           )}
         </DropdownMenuItem>
 
-        {/* 로그아웃 — 목. 데이터 단계에서 logout() 연결 */}
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>
           <LogOut className="size-4" />
           로그아웃
         </DropdownMenuItem>

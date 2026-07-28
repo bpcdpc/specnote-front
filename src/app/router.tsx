@@ -11,6 +11,7 @@ import { ProjectCreatePage } from "@/pages/project-form/ProjectCreatePage";
 import { ProjectSettingsPage } from "@/pages/project-form/ProjectSettingsPage";
 import { SpecDetailPage } from "@/pages/spec-detail/SpecDetailPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { RequireAuth } from "./RequireAuth";
 
 // 라우트 정의
 //
@@ -34,34 +35,39 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 대시보드 — 프로젝트 목록
   {
-    element: <AppLayout variant="dashboard" />,
-    children: [{ path: "/", element: <DashboardPage /> }],
-  },
-
-  // 프로젝트 생성
-  {
-    element: <AppLayout variant="project-create" />,
-    children: [{ path: "/projects/new", element: <ProjectCreatePage /> }],
-  },
-
-  // 프로젝트 설정
-  // path 를 부모에 둔다. 자식에만 두면 AppLayout 의 useParams() 가 비어
-  // 브레드크럼 링크가 /projects/undefined 로 나간다.
-  {
-    path: "/projects/:projectId/settings",
-    element: <AppLayout variant="project-settings" />,
-    children: [{ index: true, element: <ProjectSettingsPage /> }],
-  },
-
-  // 스펙 상세 — 3컬럼
-  {
-    path: "/projects/:projectId",
-    element: <SpecLayout />,
+    element: <RequireAuth />,
     children: [
-      { index: true, element: <SpecDetailPage /> },
-      { path: "endpoints/:endpointId", element: <SpecDetailPage /> },
+      // 대시보드 — 프로젝트 목록
+      {
+        element: <AppLayout variant="dashboard" />,
+        children: [{ path: "/", element: <DashboardPage /> }],
+      },
+
+      // 프로젝트 생성
+      {
+        element: <AppLayout variant="project-create" />,
+        children: [{ path: "/projects/new", element: <ProjectCreatePage /> }],
+      },
+
+      // 프로젝트 설정
+      // path 를 부모에 둔다. 자식에만 두면 AppLayout 의 useParams() 가 비어
+      // 브레드크럼 링크가 /projects/undefined 로 나간다.
+      {
+        path: "/projects/:projectId/settings",
+        element: <AppLayout variant="project-settings" />,
+        children: [{ index: true, element: <ProjectSettingsPage /> }],
+      },
+
+      // 스펙 상세 — 3컬럼
+      {
+        path: "/projects/:projectId",
+        element: <SpecLayout />,
+        children: [
+          { index: true, element: <SpecDetailPage /> },
+          { path: "endpoints/:endpointId", element: <SpecDetailPage /> },
+        ],
+      },
     ],
   },
 
