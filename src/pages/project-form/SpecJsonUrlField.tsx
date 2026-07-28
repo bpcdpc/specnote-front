@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldSet, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { commitSpec } from "@/lib/api/projects";
-import { ApiError } from "@/lib/api/client";
 import type { EndpointDiff } from "@/lib/types";
+import { specErrorMessage } from "./SpecError";
 
 type SpecJsonUrlFieldProps = {
   projectId: number;
@@ -18,15 +18,6 @@ type SpecJsonUrlFieldProps = {
 // 서버는 새 스냅샷을 append 하고 엔드포인트를 upsert 한다.
 // 사라진 것은 소프트 삭제되고 거기 달린 댓글은 남는다.
 // 같은 path+method 가 다시 나타나면 기존 행이 부활해 댓글도 되살아난다(FR-10).
-//
-// 실패 코드가 셋이라 문구를 갈라 준다. "스펙 로딩 실패" 한 줄이면
-// URL 오타인지 버전 문제인지 사용자가 알 수 없다.
-const SPEC_ERROR: Record<string, string> = {
-  INVALID_SPEC: "OpenAPI 스펙 형식이 올바르지 않습니다.",
-  UNSUPPORTED_VERSION:
-    "지원하지 않는 버전입니다. OpenAPI 3.0 또는 3.1만 됩니다.",
-  SPEC_LOAD_ERROR: "스펙을 불러오지 못했습니다. URL 을 확인해주세요.",
-};
 
 // 업데이트된 엔드포인트들의 갯수를 대략적으로 알려준다.
 function describeDiff(diff: EndpointDiff): string {
@@ -63,11 +54,7 @@ export function SpecJsonUrlField({
       });
     },
     onError: (e) => {
-      if (e instanceof ApiError) {
-        setError((e.code && SPEC_ERROR[e.code]) ?? e.message);
-      } else {
-        setError("스펙을 업데이트하지 못했습니다.");
-      }
+      setError(specErrorMessage(e, "스펙을 업데이트하지 못했습니다."));
     },
   });
 

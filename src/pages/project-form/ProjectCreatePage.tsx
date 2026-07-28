@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { createProject } from "@/lib/api/projects";
-import { ApiError } from "@/lib/api/client";
+import { specErrorMessage } from "./SpecError";
 
 // ProjectCreatePage — 프로젝트 생성
 //
@@ -15,18 +15,6 @@ import { ApiError } from "@/lib/api/client";
 // base URL/멤버는 생성 후 설정 화면에서 추가.
 //
 // 컨테이너는 대시보드 목록과 동일 — 화면 간 좌측 기준선과 여백을 맞춘다.
-//
-// TODO(데이터 단계): 입력값 상태 + createProject(url) 연결, 빈 값일 때 비활성 처리.
-
-// TODO: SpecJsonUrlField 와 같은 맵이다. 두 화면이 같은 폴더에 있으니
-//   뽑을 자리가 있는데, 어디에 둘지 정해지면 옮긴다.
-const SPEC_ERROR: Record<string, string> = {
-  INVALID_SPEC: "OpenAPI 스펙 형식이 올바르지 않습니다.",
-  UNSUPPORTED_VERSION:
-    "지원하지 않는 버전입니다. OpenAPI 3.0 또는 3.1만 됩니다.",
-  SPEC_LOAD_ERROR: "스펙을 불러오지 못했습니다. URL 을 확인해주세요.",
-};
-
 export function ProjectCreatePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -41,9 +29,7 @@ export function ProjectCreatePage() {
       navigate(`/projects/${projectView.project.id}`, { replace: true });
     },
     onError: (e) => {
-      if (e instanceof ApiError)
-        setError((e.code && SPEC_ERROR[e.code]) ?? e.message);
-      else setError("프로젝트를 만들지 못했습니다.");
+      setError(specErrorMessage(e, "프로젝트를 만들지 못했습니다."));
     },
   });
 
