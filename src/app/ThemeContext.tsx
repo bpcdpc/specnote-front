@@ -49,9 +49,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  if (!ctx)
+    throw new Error("useTheme은 ThemeProvider 내부에서만 사용할 수 있습니다.");
   return ctx;
 }

@@ -3,61 +3,102 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { Field, FieldSet, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { useState } from "react";
+import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/app/AuthContext";
 
-// LoginPage — 로그인 (목)
+// LoginPage — 로그인
 //
-// TODO(데이터 단계): 제출을 POST /api/auth/login 으로 교체.
-//   { email, password } → { access_token }, 401 처리, 토큰 localStorage 15일.
-// 지금은 콘솔 출력 후 대시보드로 이동.
+// { email, password } → { access_token }, 401 처리, JWT 토큰 만료 15일.
 export function LoginPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = () => {
-    // 목: 실제 인증 없이 대시보드로
-    navigate("/");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await login({ email, password });
+      navigate("/", { replace: true });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "로그인에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <header className="space-y-2">
         <Logo />
-        {/* <hr className="border border-foreground" /> */}
       </header>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <FieldSet>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
+                required
+              />
+            </Field>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <Field>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "로그인 중..." : "로그인"}
+              </Button>
+            </Field>
+          </FieldGroup>
+        </FieldSet>
 
-      <FieldSet>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="userId">Email</FieldLabel>
-            <Input
-              id="userId"
-              autoComplete="off"
-              placeholder="user@example.com"
-              type="email"
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="userPw">Password</FieldLabel>
-            <Input
-              id="userPw"
-              autoComplete="off"
-              placeholder="12345678"
-              type="password"
-            />
-          </Field>
-          <Field>
-            <Button onClick={handleSubmit}>로그인</Button>
-          </Field>
-        </FieldGroup>
-      </FieldSet>
-
-      <div className="mt-4 flex gap-4 text-sm justify-center">
-        <Link
-          to="/signup"
-          className="text-fg-2 hover:underline underline-offset-4"
-        >
-          회원가입
-        </Link>
-      </div>
+        <div className="mt-4 flex gap-4 text-sm justify-center">
+          <Link
+            to="/signup"
+            className="text-fg-2 hover:underline underline-offset-4"
+          >
+            회원가입
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }
