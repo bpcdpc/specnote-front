@@ -27,7 +27,7 @@ export function ProjectSettingsPage() {
   } = useQuery({
     queryKey: ["projects", id],
     queryFn: () => getProject(id),
-    enabled: Number.isFinite(id),
+    enabled: Number.isInteger(id) && id > 0,
   });
 
   if (isPending) {
@@ -51,7 +51,7 @@ export function ProjectSettingsPage() {
   // 백엔드에서 Member를 막지 않고 있어, url 로 직접 접근한 일반 멤버의 경우, redirect해줘야 한다.
   const isOwner = projectView.project.role === "OWNER";
   if (!isOwner) {
-    return <Navigate to="/projects/${id}" replace />;
+    return <Navigate to={`/projects/${id}`} replace />;
   }
 
   return (

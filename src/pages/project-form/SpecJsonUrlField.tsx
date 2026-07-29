@@ -43,10 +43,17 @@ export function SpecJsonUrlField({
   const { mutate, isPending } = useMutation({
     mutationFn: () => commitSpec(projectId, { specJsonUrl: url.trim() }),
     onSuccess: (result) => {
-      // 엔드포인트 목록과 snapshotId 가 통째로 바뀐다.
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
       // 목록 카드의 title, version 도 스펙에서 다시 뽑힌다.
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"], exact: true });
+      // 엔드포인트 목록과 snapshotId 가 통째로 바뀐다.
+      queryClient.invalidateQueries({
+        queryKey: ["projects", projectId],
+        exact: true,
+      });
+      // operationJson 이 전부 갈린다. 상세 캐시를 안 버리면 설정에서 돌아왔을 때
+      // staleTime 동안 옛 스펙이 그대로 보이고, 배너로도 안 잡힌다
+      // (detail < project 방향이라 배너 조건에 안 걸린다).
+      queryClient.invalidateQueries({ queryKey: ["endpoints"] });
       toast.add({
         title: "스펙을 업데이트했습니다",
         description: describeDiff(result.diff),

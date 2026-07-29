@@ -4,7 +4,9 @@ import { Footer } from "@/components/Footer";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import type { Crumb } from "@/components/Breadcrumb";
 import { UserMenu } from "@/components/UserMenu";
-import { MOCK_PROJECT } from "@/lib/mock";
+import { parseId } from "@/lib/routeParams";
+import { useQuery } from "@tanstack/react-query";
+import { getProject } from "@/lib/api/projects";
 
 type AppLayoutProps = {
   // 헤더 좌측 경로를 정한다.
@@ -20,11 +22,14 @@ type AppLayoutProps = {
 // 헤더는 이 레이아웃이 조립한다 — 페이지가 넘겨주지 않는다.
 export function AppLayout({ variant }: AppLayoutProps) {
   const { projectId } = useParams();
+  const id = parseId(projectId);
 
-  // 설정 화면의 중간 조각은 해당 프로젝트로 간다.
-  // 03-frontend-layouts 가 설정에서 나가면 목록이 아니라 프로젝트로 돌아가도록 정했다.
-  //
-  // TODO(데이터 단계): MOCK_PROJECT 를 useProject(id) 응답으로 교체.
+  const { data: projectView } = useQuery({
+    queryKey: ["projects", id],
+    queryFn: () => getProject(id!),
+    enabled: id !== null,
+  });
+
   let items: Crumb[];
   if (variant === "dashboard") {
     items = [{ label: "Dashboard" }];
@@ -33,7 +38,9 @@ export function AppLayout({ variant }: AppLayoutProps) {
   } else {
     items = [
       { label: "Dashboard", to: "/" },
-      { label: MOCK_PROJECT.title, to: `/projects/${projectId}` },
+      ...(projectView
+        ? [{ label: projectView.project.title, to: `/projects/${id}` }]
+        : []),
       { label: "설정" },
     ];
   }

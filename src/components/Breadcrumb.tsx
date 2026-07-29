@@ -36,7 +36,7 @@ export function Breadcrumb({ items }: { items: Crumb[] }) {
                 {item.to ? (
                   <Link
                     to={item.to}
-                    className="rounded-sm hover:text-fg-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-sm hover:text-fg-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {item.label}
                   </Link>
