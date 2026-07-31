@@ -114,11 +114,13 @@ function keyOf(candidate: MentionCandidate): string {
 // 검색어로 후보를 좁힌다. 검색어가 비면 전체를 준다 —
 // @ 만 쳤을 때 아무것도 안 뜨면 무엇을 칠 수 있는지 알 수 없다.
 //
+// 개수를 자르지 않는다. 앞에서 잘라내면 검색 전에는 사이드바 순서대로 앞쪽 태그의
+// 엔드포인트만 보여 "이것뿐인가" 하고 오해하게 된다. 목록은 max-h-48 안에서
+// 스크롤되고 키보드 이동도 scrollIntoView 로 따라간다.
+//
 // 엔드포인트는 path 와 summary 를 본다. 사이드바 검색과 같은 기준이다(FR-3.4).
 // method 는 검색어에 포함하지 않는다 — "#GET" 을 치면 표시 텍스트와 겹쳐
 // 사용자가 이미 고른 것을 다시 검색하는 꼴이 된다.
-const MAX_CANDIDATES = 8;
-
 export function findCandidates(
   trigger: "@" | "#",
   query: string,
@@ -130,7 +132,6 @@ export function findCandidates(
   if (trigger === "@") {
     return members
       .filter((m) => m.userName.toLowerCase().includes(keyword))
-      .slice(0, MAX_CANDIDATES)
       .map((member) => ({ kind: "member", member }));
   }
 
@@ -140,6 +141,5 @@ export function findCandidates(
         e.path.toLowerCase().includes(keyword) ||
         (e.summary?.toLowerCase().includes(keyword) ?? false),
     )
-    .slice(0, MAX_CANDIDATES)
     .map((endpoint) => ({ kind: "endpoint", endpoint }));
 }

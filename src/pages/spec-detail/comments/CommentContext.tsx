@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { EndpointSummary, PublicUser } from "@/lib/types";
 
@@ -13,15 +13,19 @@ export type CommentData = {
   me: PublicUser;
   isOwner: boolean;
   members: PublicUser[];
+  // 삭제 포함 전체. 이미 달린 멘션은 대상이 삭제돼도 유지되므로(FR-7.4)
+  // 렌더가 삭제된 엔드포인트도 찾을 수 있어야 한다.
   endpoints: EndpointSummary[];
 };
 
-// 컨텍스트가 제공하는 전체. 바깥이 준 것 + Provider 가 만든 편집 상태.
+// 컨텍스트가 제공하는 전체. 바깥이 준 것 + Provider 가 만든 편집 상태와 파생값.
 type CommentContextValue = CommentData & {
+  // 새로 멘션하거나 댓글을 옮길 수 있는 대상. endpoints 에서 삭제된 것을 뺀 것이다.
+  activeEndpoints: EndpointSummary[];
   editing: EditingState;
   setEditing: (next: EditingState) => void;
-  justAddedId: number | null;
-  setJustAddedId: (id: number | null) => void;
+  highlightedId: number | null;
+  setHighlightedId: (id: number | null) => void;
 };
 
 const CommentContext = createContext<CommentContextValue | null>(null);
@@ -34,7 +38,16 @@ export function CommentProvider({
   children,
 }: CommentData & { children: ReactNode }) {
   const [editing, setEditing] = useState<EditingState>(null);
-  const [justAddedId, setJustAddedId] = useState<number | null>(null);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+
+  // 새로 멘션하거나 옮길 수 있는 대상은 살아 있는 엔드포인트뿐이다.
+  //
+  // endpoints 를 전체로 받고 여기서 좁힌다. 반대로 하면(걸러서 받고 전체를 따로 받으면)
+  // 소비처마다 어느 목록을 써야 하는지 매번 판단해야 한다. 이름이 용도를 말하게 둔다.
+  const activeEndpoints = useMemo(
+    () => endpoints.filter((e) => !e.isDeleted),
+    [endpoints],
+  );
 
   return (
     <CommentContext.Provider
@@ -43,10 +56,11 @@ export function CommentProvider({
         isOwner,
         members,
         endpoints,
+        activeEndpoints,
         editing,
         setEditing,
-        justAddedId,
-        setJustAddedId,
+        highlightedId,
+        setHighlightedId,
       }}
     >
       {children}

@@ -123,9 +123,10 @@ export function SpecDetailPage() {
             projectId={projectView.project.id}
             endpointId={endpointId}
             isOwner={isOwner}
-            // 멘션 대상은 삭제되지 않은 엔드포인트로 한정된다(FR-8.3).
-            // 여기서 걸러 보내면 에디터가 다시 판단하지 않는다.
-            endpoints={projectView.endpoints.filter((e) => !e.isDeleted)}
+            // 삭제된 것도 함께 넘긴다. 이미 달린 멘션은 대상이 삭제돼도 유지되므로
+            // (FR-7.4) 렌더가 삭제된 엔드포인트도 찾아 취소선을 그을 수 있어야 한다.
+            // 새로 멘션하거나 옮길 수 있는 대상은 CommentProvider 가 좁힌다.
+            endpoints={projectView.endpoints}
           />
         }
       />

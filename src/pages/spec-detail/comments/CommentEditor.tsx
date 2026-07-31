@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AtSign, Hash, Code, SquareCode, List, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/IconButton";
@@ -17,10 +17,11 @@ import {
   extractIds,
 } from "./mentions";
 import type { MentionIds } from "@/lib/types";
+import { ApiError } from "@/lib/api/client";
 
 type CommentEditorProps = {
   // content 는 저장 형식(@2|), mentions 는 거기서 뽑은 ID.
-  onSubmit: (content: string, mentions: MentionIds) => void;
+  onSubmit: (content: string, mentions: MentionIds) => Promise<void>;
   // 답글,수정 모드에서만 준다. 없으면 취소 버튼을 그리지 않는다.
   onCancel?: () => void;
   // 수정 모드의 기존 본문. 저장 형식으로 들어와 표시 형식으로 풀어 보여준다.
@@ -42,6 +43,10 @@ const MAX_HEIGHT = 200;
 // 1. Enter 는 줄바꿈. 제출은 버튼만 — Cmd+Enter 는 한글 IME 충돌로 제외(01-frontend-stack 미결 참조)
 // 2. 높이는 내용에 맞춰 늘어난다. rows 로 줄 수만 세면 좁은 패널에서 자동 줄바꿈된 분량이 빠져 실제보다 짧게 잡힌다. scrollHeight 를 읽는다.
 // 3. 공백만 있으면 제출을 막는다. trim 결과를 넘긴다.
+//
+// 엔드포인트 목록을 두 벌 쓴다. 후보(activeEndpoints)는 살아 있는 것만,
+// 표시·저장 변환(endpoints)은 전체를 본다 — 삭제된 엔드포인트를 멘션했던 옛 댓글을
+// 수정할 때 그 토큰이 이름으로 풀리고 다시 토큰으로 되돌아가야 한다.
 export function CommentEditor({
   onSubmit,
   onCancel,
@@ -50,7 +55,7 @@ export function CommentEditor({
   autoFocus = false,
   submitLabel = "등록",
 }: CommentEditorProps) {
-  const { members, endpoints } = useCommentContext();
+  const { members, endpoints, activeEndpoints } = useCommentContext();
 
   // 표시 형식으로 들고 있는다. 저장 형식은 제출할 때만 만든다.
   const [value, setValue] = useState(() =>
@@ -65,6 +70,11 @@ export function CommentEditor({
     start: number;
   } | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = value.trim().length > 0 && !submitting;
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 높이를 내용에 맞춘다. auto 로 되돌린 뒤 재야 줄어들 때도 따라온다.
@@ -75,7 +85,22 @@ export function CommentEditor({
     el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT)}px`;
   }, [value]);
 
-  const canSubmit = value.trim().length > 0;
+  // 답글, 수정 모드에서 열릴 때 입력창을 화면 안으로 끌어온다.
+  // autoFocus 가 곧 "방금 열렸다"는 신호다 — 하단 고정 입력창에는 없다.
+  //
+  // 지연을 두는 이유 — 접힌 스레드에서 열리면 CommentThread 의 grid-rows 전환
+  // (0fr → 1fr, 200ms)이 아직 진행 중이다. 즉시 부르면 높이가 0 인 상태의 위치를
+  // 목표로 잡아 부모 댓글 근처에서 멈춘다.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const timer = setTimeout(() => {
+      textareaRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [autoFocus]);
 
   // 값, 커서가 바뀔 때마다 멘션 입력 중인지 판단한다.
   const syncMention = (text: string, caret: number) => {
@@ -84,11 +109,12 @@ export function CommentEditor({
       setMention(null);
       return;
     }
+    // 후보는 살아 있는 엔드포인트만. 삭제된 것을 새로 멘션할 수는 없다.
     const candidates = findCandidates(
       active.trigger,
       active.query,
       members,
-      endpoints,
+      activeEndpoints,
     );
     if (candidates.length === 0) {
       setMention(null);
@@ -99,6 +125,7 @@ export function CommentEditor({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
+    setError(null);
     syncMention(e.target.value, e.target.selectionStart);
   };
 
@@ -156,14 +183,28 @@ export function CommentEditor({
     });
   };
 
-  const submit = () => {
+  const submit = async () => {
+    // 현재 이 함수에 도달할 수 있는 경로가 서브밋 버튼 한개 뿐이고,
+    // 서브밋 버튼에 canSubmit 이 disabled 조건으로 걸려있어서 submitting 값을 조사할 필요가 없다.
+
     const text = value.trim();
     if (!text) return;
 
-    const storage = toStorage(text, members, endpoints);
-    onSubmit(storage, extractIds(storage));
-    setValue("");
-    setMention(null);
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // 전체 목록으로 되돌린다. 옛 댓글이 들고 있던 삭제된 엔드포인트 멘션도
+      // 토큰으로 복원돼야 수정이 성립한다(백엔드가 기존 멘션을 허용한다).
+      const storage = toStorage(text, members, endpoints);
+      await onSubmit(storage, extractIds(storage));
+      setValue("");
+      setMention(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "등록하지 못했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -298,6 +339,12 @@ export function CommentEditor({
         />
       </div>
 
+      {error && (
+        <p role="alert" className="px-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       {/* 하단 바 — 좌: 파일 추가 / 우: 취소·전송 */}
       <div className="flex items-center justify-between px-1.5 py-1">
         <IconButton
@@ -314,7 +361,12 @@ export function CommentEditor({
 
         <div className="flex items-center gap-1">
           {onCancel && (
-            <Button variant="ghost" size="sm" onClick={onCancel}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              disabled={submitting}
+            >
               취소
             </Button>
           )}

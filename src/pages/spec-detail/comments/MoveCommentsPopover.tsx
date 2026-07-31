@@ -40,18 +40,18 @@ type MoveCommentsPopoverProps = {
 // ReactionBar 와 같은 회피 — Button + ICON_BUTTON_OVERRIDE 로 스타일만 맞춘다.
 // 툴팁이 없어도 팝오버가 "옮길 곳 선택"을 바로 보여줘 정보 손실이 없다.
 //
-// endpoints 는 SpecDetailPage 에서 이미 삭제 제외돼 온다(FR-12.3).
-// 여기서 현재 엔드포인트만 추가로 뺀다.
+// activeEndpoints 를 쓴다. 삭제된 엔드포인트로는 옮기지 않는다(FR-12.3) —
+// 백엔드도 대상이 삭제됐으면 400 을 낸다. 여기서 현재 엔드포인트만 추가로 뺀다.
 export function MoveCommentsPopover({
   currentEndpointId,
   disabled,
   count,
   onPick,
 }: MoveCommentsPopoverProps) {
-  const { endpoints } = useCommentContext();
+  const { activeEndpoints } = useCommentContext();
   const [open, setOpen] = useState(false);
 
-  const targets = endpoints.filter((e) => e.id !== currentEndpointId);
+  const targets = activeEndpoints.filter((e) => e.id !== currentEndpointId);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

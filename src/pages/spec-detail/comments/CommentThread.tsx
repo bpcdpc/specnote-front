@@ -8,8 +8,16 @@ import type { CommentTree, MentionIds } from "@/lib/types";
 
 type CommentThreadProps = {
   thread: CommentTree;
-  onReply: (threadId: number, content: string, mentions: MentionIds) => void;
-  onEdit: (commentId: number, content: string, mentions: MentionIds) => void;
+  onReply: (
+    threadId: number,
+    content: string,
+    mentions: MentionIds,
+  ) => Promise<void>;
+  onEdit: (
+    commentId: number,
+    content: string,
+    mentions: MentionIds,
+  ) => Promise<void>;
 };
 
 // CommentThread — 댓글 + 답글 묶음 (2뎁스 고정)
@@ -31,7 +39,7 @@ export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
   const regionId = `thread-${thread.id}-replies`;
   const replying = editing?.mode === "reply" && editing.threadId === thread.id;
 
-  // 답글 작성 중에는 무조건 펼친다.
+  // 답글 작성 버튼을 누르면 펼친다.
   const open = replying || !collapsed;
 
   return (
@@ -63,39 +71,47 @@ export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
             </button>
           )}
 
-          <div
-            id={regionId}
-            aria-hidden={!open}
-            className={cn(
-              "grid transition-[grid-template-rows] duration-200",
-              open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-            )}
-          >
-            <div className="overflow-hidden">
-              <div className="mt-2 flex flex-col gap-3 border-l-3 border-border pl-3">
-                {/* 답글 에디터 — 버튼 바로 아래 */}
-                {replying && (
-                  <CommentEditor
-                    autoFocus
-                    submitLabel="답글"
-                    placeholder="답글을 입력하세요"
-                    onSubmit={(content, mentions) => {
-                      onReply(thread.id, content, mentions);
-                      setEditing(null);
-                    }}
-                    onCancel={() => setEditing(null)}
-                  />
+          {/* 세로선을 여기 한 번만 둔다. 접기 컨테이너와 에디터에 각각 주면
+              둘 사이에서 선이 끊긴다. */}
+          <div className="mt-2 flex flex-col gap-3 border-l-3 border-border pl-3">
+            {/* 접기 대상은 대댓글 목록뿐이다. */}
+            {replies.length > 0 && (
+              <div
+                id={regionId}
+                aria-hidden={!open}
+                className={cn(
+                  "grid transition-[grid-template-rows] duration-200",
+                  open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
                 )}
-
-                <ul className="flex flex-col gap-3">
-                  {replies.map((reply) => (
-                    <li key={reply.id}>
-                      <CommentItem comment={reply} onEdit={onEdit} />
-                    </li>
-                  ))}
-                </ul>
+              >
+                {/* 접기에 필요한 overflow-hidden. 에디터를 이 안에 두면
+                    멘션 팝오버가 위 경계에서 잘린다 — 그래서 밖으로 뺐다. */}
+                <div className="overflow-hidden">
+                  <ul className="flex flex-col gap-3">
+                    {replies.map((reply) => (
+                      <li key={reply.id}>
+                        <CommentItem comment={reply} onEdit={onEdit} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* 답글 에디터 — 대댓글 목록 맨 아래 */}
+            {replying && (
+              <CommentEditor
+                autoFocus
+                submitLabel="답글"
+                placeholder="답글을 입력하세요"
+                onSubmit={async (content, mentions) => {
+                  await onReply(thread.id, content, mentions);
+                  setCollapsed(false);
+                  setEditing(null);
+                }}
+                onCancel={() => setEditing(null)}
+              />
+            )}
           </div>
         </div>
       )}

@@ -22,8 +22,13 @@ import {
   type CommentData,
 } from "./CommentContext";
 import type { MentionIds, EndpointSummary } from "@/lib/types";
-import { useQuery } from "@tanstack/react-query";
-import { getComments } from "@/lib/api/comments";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createComment,
+  createReply,
+  getComments,
+  updateComment,
+} from "@/lib/api/comments";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -38,7 +43,7 @@ import { ErrorState } from "@/components/ErrorState";
 // Provider 와 같은 컴포넌트에 있으면 자기가 만든 값을 못 읽는다.
 //
 // key 를 Inner 가 아니라 Provider 에 건다.
-// 엔드포인트를 바꿨을 때 초기화돼야 하는 상태가 Provider 쪽에도 있다 — (editing, justAddedId)
+// 엔드포인트를 바꿨을 때 초기화돼야 하는 상태가 Provider 쪽에도 있다 — (editing, highlightedId)
 // Inner 에 걸면 답글 에디터가 열린 채로 다른 엔드포인트에 남는다.
 // 목록 자체는 쿼리 키가 갈려 알아서 바뀐다.
 export function CommentPanel({
@@ -62,7 +67,9 @@ export function CommentPanel({
 }
 
 function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
-  // const { me, members, endpoints, setJustAddedId } = useCommentContext();
+  const { setHighlightedId } = useCommentContext();
+
+  const queryClient = useQueryClient();
 
   const {
     data: threads,
@@ -83,6 +90,50 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     endpoint: EndpointSummary;
     count: number;
   } | null>(null);
+
+  const createCommentMutation = useMutation({
+    // mutationFn 은 인자를 하나만 받기 때문에, 둘 이상은 객체로 묶어서 줘야한다.
+    // endpointId 는 여기서 아직 number | null 이다 —
+    // 실행 시점에는 조기 return 을 통과한 뒤라 null 이 아니지만, 타입 통과를 위해 이렇게 써야한다.
+    mutationFn: (vars: { content: string; mentions: MentionIds }) =>
+      createComment(endpointId!, vars.content, vars.mentions),
+    onSuccess: async (comment) => {
+      // 재조회가 끝난 뒤에 세팅해야 해서 async로 선언한다.
+      // 그 전에 하면 스크롤할 DOM 노드가 아직 없어 CommentItem 의 scrollIntoView 가 빈 동작이 된다.
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+      setHighlightedId(comment.id);
+    },
+  });
+
+  const createReplyMutation = useMutation({
+    mutationFn: (vars: {
+      parentId: number;
+      content: string;
+      mentions: MentionIds;
+    }) => createReply(vars.parentId, vars.content, vars.mentions),
+    onSuccess: async (comment) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+      setHighlightedId(comment.id);
+    },
+  });
+
+  const updateCommentMutation = useMutation({
+    mutationFn: (vars: {
+      commentId: number;
+      content: string;
+      mentions: MentionIds;
+    }) => updateComment(vars.commentId, vars.content, vars.mentions),
+    onSuccess: async (comment) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+      setHighlightedId(comment.id);
+    },
+  });
 
   if (endpointId === null) {
     return (
@@ -131,13 +182,15 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     setMoveTarget({ endpoint, count: total });
   };
 
+  // 다이얼로그의 확인 버튼. 이름을 moveComments 로 두지 않는다 —
+  // 5-7 에서 lib/api/comments 의 moveComments 를 import 하면 같은 스코프에서 충돌한다.
+  //
   // TODO(5-7): moveComments(endpointId, endpoint.id) 호출 후 양쪽 무효화.
   //   원본 ["comments", endpointId] 와 대상 ["comments", endpoint.id] 둘 다 —
   //   대상을 빼먹으면 옮겨간 곳을 열었을 때 옛 목록이 보인다.
-  const moveComments = () => {
-    if (!moveTarget || !endpointId) return;
+  const confirmMove = () => {
+    if (!moveTarget) return;
     const { endpoint } = moveTarget;
-
     setMoveTarget(null);
     toast.add({
       title: "댓글을 옮겼습니다",
@@ -146,23 +199,36 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     });
   };
 
-  // TODO(5-3): useMutation(createComment). 성공 후 ["comments", endpointId] 무효화,
-  //   재조회가 끝난 뒤 응답의 id 를 setJustAddedId 에 넣는다(그 전에 넣으면 DOM 에 없다).
-  const addThread = (content: string, mentions: MentionIds) => {};
+  // mutateAsync 를 쓴다.
+  // mutate 는 Promise 를 반환하지 않아 CommentEditor 가 완료를 기다릴 수 없고,
+  // 실패해도 입력이 지워진다.
+  const addThread = async (content: string, mentions: MentionIds) => {
+    await createCommentMutation.mutateAsync({ content, mentions });
+  };
 
-  // TODO(5-3): useMutation(createReply). threadId 가 곧 parentId 다.
-  const addReply = (
-    threadId: number,
+  const addReply = async (
+    parentId: number,
     content: string,
     mentions: MentionIds,
-  ) => {};
+  ) => {
+    await createReplyMutation.mutateAsync({
+      parentId,
+      content,
+      mentions,
+    });
+  };
 
-  // TODO(5-4): useMutation(updateComment).
-  const editComment = (
+  const editComment = async (
     commentId: number,
     content: string,
     mentions: MentionIds,
-  ) => {};
+  ) => {
+    await updateCommentMutation.mutateAsync({
+      commentId,
+      content,
+      mentions,
+    });
+  };
 
   return (
     <>
@@ -175,7 +241,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
           </p>
         ) : (
           <ul className="flex flex-col gap-5">
-            {/* 댓글 정렬은 시간 순 asc. 제출 후 스크롤 + 하이라이트가 거기로 이동시켜 안 보이는 문제를 해결한다. */}
+            {/* 서버가 asc로 준다. 논의 흐름이 위에서 아래로 읽힌다. */}
             {threads.map((thread) => (
               <li key={thread.id}>
                 <CommentThread
@@ -218,7 +284,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={moveComments}>이동</AlertDialogAction>
+            <AlertDialogAction onClick={confirmMove}>이동</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -257,6 +323,9 @@ function PanelHeader({ actions }: PanelHeaderProps) {
           <>
             <IconButton
               label="AI 요약"
+              // TODO(5-6): 조건이 서버와 어긋난다. 서버는 삭제분과 이전 AI 요약을
+              //   수집에서 빼므로, 전부 삭제됐거나 전부 요약이면 total > 0 인데 400 이 온다.
+              //   "미삭제 && !isAiGenerated 인 댓글 1건 이상"으로 바꿔야 한다.
               disabled={actions.total === 0}
               onClick={() => {
                 /* TODO(5-6) */

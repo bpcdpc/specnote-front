@@ -13,7 +13,11 @@ type CommentItemProps = {
   comment: CommentView;
   // 최상위 댓글만 답글을 받는다(2뎁스 고정). 대댓글에는 답글 버튼이 없다.
   isRoot?: boolean;
-  onEdit?: (commentId: number, content: string, mentions: MentionIds) => void;
+  onEdit?: (
+    commentId: number,
+    content: string,
+    mentions: MentionIds,
+  ) => Promise<void>;
 };
 
 // CommentItem — 댓글/답글 한 건 (공용)
@@ -24,15 +28,15 @@ type CommentItemProps = {
 // 답글 버튼은 최상위 && 사람 작성 && 미삭제일 때만. AI 요약에는 답글을 못 단다(FR-13.5).
 // 수정/삭제는 내 글 && 미삭제일 때만. AI 는 로그인 못 해 author.id 가 절대 안 맞는다.
 //
-// 방금 등록된 항목이면 스크롤+하이라이트 대상이다. ref 콜백이 마운트 순간
-// scrollIntoView 를 부른다 — 스크롤 주체(Panel/aside)가 어디든 브라우저가
-// 가장 가까운 스크롤 조상을 찾는다. 하이라이트는 CSS 애니메이션이 스스로 끝낸다.
+// 방금 등록되거나 수정된 항목이면 스크롤+하이라이트 대상이다.
+// useEffect 콜백이 scrollIntoView 를 부른다 —
+// 스크롤 주체(Panel/aside)가 어디든 브라우저가 가장 가까운 스크롤 조상을 찾는다. 하이라이트는 CSS 애니메이션이 스스로 끝낸다.
 export function CommentItem({
   comment,
   isRoot = false,
   onEdit,
 }: CommentItemProps) {
-  const { me, editing, setEditing, justAddedId, setJustAddedId } =
+  const { me, editing, setEditing, highlightedId, setHighlightedId } =
     useCommentContext();
 
   const {
@@ -49,7 +53,7 @@ export function CommentItem({
   const isMine = author.id === me.id;
   const isEdited = updatedAt !== createdAt;
   const isEditing = editing?.mode === "edit" && editing.commentId === id;
-  const isNew = id === justAddedId;
+  const isHighlighted = id === highlightedId;
 
   const canReply = isRoot && !isAiGenerated && !isDeleted;
   const canModify = isMine && !isDeleted;
@@ -57,20 +61,23 @@ export function CommentItem({
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (isNew) {
-      ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (isHighlighted) {
+      // behavior:smooth 를 주지 않는다. smooth 는 거리에 비례해 오래 걸리는데 그동안
+      // 2초짜리 하이라이트가 흘러가, 긴 목록에서는 도착했을 때 이미 꺼져 있다.
+      // 에디터 열림 스크롤(CommentEditor)은 경쟁하는 애니메이션이 없어 smooth 를 쓴다.
+      ref.current?.scrollIntoView({ block: "center" });
     }
-  }, [isNew]);
+  }, [isHighlighted]);
 
   return (
     <article
       ref={ref}
       onAnimationEnd={() => {
-        if (isNew) setJustAddedId(null);
+        if (isHighlighted) setHighlightedId(null);
       }}
       className={cn(
         "group/comment flex flex-col gap-1.5 rounded-md",
-        isNew && "animate-[comment-highlight_2s_ease-out]",
+        isHighlighted && "animate-[comment-highlight_2s_ease-out]",
       )}
     >
       <header className="flex items-center gap-2">
@@ -97,8 +104,8 @@ export function CommentItem({
           autoFocus
           submitLabel="저장"
           initialContent={content}
-          onSubmit={(next, mentions) => {
-            onEdit?.(id, next, mentions);
+          onSubmit={async (next, mentions) => {
+            await onEdit?.(id, next, mentions);
             setEditing(null);
           }}
           onCancel={() => setEditing(null)}
@@ -117,7 +124,7 @@ export function CommentItem({
             <ReactionBar
               reactions={reactions}
               onToggle={() => {
-                // TODO(데이터 단계): POST /api/comments/:id/reactions 후 재조회.
+                // TODO(5-5): POST /api/comments/:id/reactions 후 재조회.
               }}
             />
 
@@ -147,7 +154,7 @@ export function CommentItem({
                   label="삭제"
                   className="text-fg-3"
                   onClick={() => {
-                    // TODO(데이터 단계): DELETE /api/comments/:id 후 재조회.
+                    // TODO(5-4): DELETE /api/comments/:id 후 재조회.
                   }}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
