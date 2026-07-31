@@ -107,6 +107,30 @@ export type EndpointDetail = {
 
 // ── comments ────────────────────────────────────────────
 
+// 프리즈마 댓글/리액션 원형.
+// 실제로 읽는 값은 Comment.id 하나다(justAddedId — 방금 등록한 항목으로 스크롤).
+// Reaction 은 어느 필드도 읽지 않는다. api 함수 시그니처를 위해서만 둔다.
+export type Comment = {
+  id: number;
+  endpointId: number;
+  userId: number;
+  content: string;
+  isDeleted: boolean;
+  parentId: number | null;
+  projectId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Reaction = {
+  id: number;
+  commentId: number;
+  userId: number;
+  type: REACTION_TYPE;
+  projectId: number;
+  createdAt: string;
+};
+
 // GET /api/endpoints/:id/comments 응답. 최상위 배열이 CommentTree[] 다.
 // 삭제 댓글도 자리를 지킨다(FR-5.3) — content 는 서버가 마스킹해서 보낸다.
 export type CommentView = {

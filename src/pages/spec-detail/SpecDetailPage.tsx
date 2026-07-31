@@ -119,8 +119,9 @@ export function SpecDetailPage() {
         sidebar={<EndpointSidebar endpoints={projectView.endpoints} />}
         detail={detailNode}
         comments={
-          <CommentsSlot
+          <CommentSlot
             projectId={projectView.project.id}
+            endpointId={endpointId}
             isOwner={isOwner}
             // 멘션 대상은 삭제되지 않은 엔드포인트로 한정된다(FR-8.3).
             // 여기서 걸러 보내면 에디터가 다시 판단하지 않는다.
@@ -201,12 +202,14 @@ function renderDetail(
 //
 // members 를 빈 배열로 흘려보내지 않는다. 에디터의 멘션 후보가 0건인 것과
 // 아직 못 받은 것은 다른 상태인데, 화면에서는 똑같이 "후보 없음"으로 보인다.
-function CommentsSlot({
+function CommentSlot({
   projectId,
+  endpointId,
   isOwner,
   endpoints,
 }: {
   projectId: number;
+  endpointId: number | null;
   isOwner: boolean;
   endpoints: EndpointSummary[];
 }) {
@@ -242,6 +245,7 @@ function CommentsSlot({
       // Owner 판정은 isOwner 로 이미 내려온다.
       members={membersQuery.data.map((m) => m.user)}
       endpoints={endpoints}
+      endpointId={endpointId}
     />
   );
 }

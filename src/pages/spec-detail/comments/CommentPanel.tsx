@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { PANEL } from "../panelMetrics";
-import { getMockComments } from "@/lib/mock";
 import { IconButton } from "@/components/IconButton";
 import { CommentThread } from "./CommentThread";
 import { CommentEditor } from "./CommentEditor";
@@ -23,13 +21,11 @@ import {
   useCommentContext,
   type CommentData,
 } from "./CommentContext";
-import type {
-  CommentTree,
-  MentionIds,
-  UserRef,
-  EndpointRef,
-  EndpointSummary,
-} from "@/lib/types";
+import type { MentionIds, EndpointSummary } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { getComments } from "@/lib/api/comments";
+import { LoadingState } from "@/components/LoadingState";
+import { ErrorState } from "@/components/ErrorState";
 
 // CommentPanel — 오른쪽 컬럼 골격
 //
@@ -40,39 +36,92 @@ import type {
 //
 // Provider 와 본문을 나눈 이유 — 헤더가 isOwner 를 컨텍스트에서 읽어야 하는데
 // Provider 와 같은 컴포넌트에 있으면 자기가 만든 값을 못 읽는다.
-export function CommentPanel({ me, isOwner, members, endpoints }: CommentData) {
-  const { endpointId } = useParams();
-
+//
+// key 를 Inner 가 아니라 Provider 에 건다.
+// 엔드포인트를 바꿨을 때 초기화돼야 하는 상태가 Provider 쪽에도 있다 — (editing, justAddedId)
+// Inner 에 걸면 답글 에디터가 열린 채로 다른 엔드포인트에 남는다.
+// 목록 자체는 쿼리 키가 갈려 알아서 바뀐다.
+export function CommentPanel({
+  me,
+  isOwner,
+  members,
+  endpoints,
+  endpointId,
+}: CommentData & { endpointId: number | null }) {
   return (
     <CommentProvider
+      key={endpointId}
       me={me}
       isOwner={isOwner}
       members={members}
       endpoints={endpoints}
     >
-      {/* key 로 리마운트한다. 엔드포인트를 바꾸면 로컬에 쌓인 댓글이 초기화돼야 한다. */}
-      <CommentPanelInner key={endpointId} />
+      <CommentPanelInner endpointId={endpointId} />
     </CommentProvider>
   );
 }
 
-function CommentPanelInner() {
-  const { endpointId } = useParams();
-  const { me, members, endpoints, setJustAddedId } = useCommentContext();
+function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
+  // const { me, members, endpoints, setJustAddedId } = useCommentContext();
 
-  // TODO(데이터 단계): useComments(endpointId) 로 교체하고 이 state 를 버린다.
-  //   실제로는 작성 후 목록을 재조회한다 — mutation 응답이 Comment 원형이라
-  //   author, reactions, memberMentions 가 없어 로컬 패치가 불가능하다.
-  const [threads, setThreads] = useState<CommentTree[]>(() =>
-    endpointId ? getMockComments(Number(endpointId)) : [],
-  );
+  const {
+    data: threads,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["comments", endpointId],
+    // enabled 가 endpointId !== null 을 보장한다.
+    queryFn: () => getComments(endpointId!),
+    enabled: endpointId !== null,
+  });
 
-  // 이동 대상. null 이면 다이얼로그 안 뜸. 팝오버에서 고르면 세팅된다.
+  // 댓글 이동 대상. null 이면 다이얼로그 안 뜸. 팝오버에서 고르면 세팅된다.
   // 이동 후 total 이 0 이 되므로, 다이얼로그 문구에 쓸 개수를 함께 담는다.
   const [moveTarget, setMoveTarget] = useState<{
     endpoint: EndpointSummary;
     count: number;
   } | null>(null);
+
+  if (endpointId === null) {
+    return (
+      <>
+        <PanelHeader />
+        <div className={PANEL.comments.body}>
+          <p className="px-2 pt-16 text-center text-sm text-fg-3">
+            엔드포인트를 선택하면 댓글이 표시됩니다
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <>
+        <PanelHeader />
+        <div className={PANEL.comments.body}>
+          <LoadingState label="댓글을 불러오는 중…" />
+        </div>
+      </>
+    );
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PanelHeader />
+        <div className={PANEL.comments.body}>
+          <ErrorState
+            error={error}
+            fallback="댓글을 불러오지 못했습니다."
+            onRetry={refetch}
+          />
+        </div>
+      </>
+    );
+  }
 
   // 삭제된 댓글도 자리를 지키므로(FR-5.3) 세는 대상에 포함한다.
   const total = threads.reduce((sum, t) => sum + 1 + t.replies.length, 0);
@@ -82,14 +131,13 @@ function CommentPanelInner() {
     setMoveTarget({ endpoint, count: total });
   };
 
+  // TODO(5-7): moveComments(endpointId, endpoint.id) 호출 후 양쪽 무효화.
+  //   원본 ["comments", endpointId] 와 대상 ["comments", endpoint.id] 둘 다 —
+  //   대상을 빼먹으면 옮겨간 곳을 열었을 때 옛 목록이 보인다.
   const moveComments = () => {
     if (!moveTarget || !endpointId) return;
     const { endpoint } = moveTarget;
 
-    // TODO(데이터 단계): PATCH /api/endpoints/:id/comments/move
-    //   body { targetEndpointId: endpoint.id } 호출 후 재조회.
-    //   지금은 목이라 현재 패널만 비운다.
-    setThreads([]);
     setMoveTarget(null);
     toast.add({
       title: "댓글을 옮겼습니다",
@@ -98,141 +146,36 @@ function CommentPanelInner() {
     });
   };
 
-  // 정렬은 asc(오래된 게 위). 댓글·답글 모두 시간순이라 논의 흐름이 위에서
-  // 아래로 읽힌다(Slack, GitHub 관례). 새 항목은 맨 아래에 붙고,
-  // 제출 후 스크롤+하이라이트가 거기로 이동시켜 안 보이는 문제를 해결한다.
+  // TODO(5-3): useMutation(createComment). 성공 후 ["comments", endpointId] 무효화,
+  //   재조회가 끝난 뒤 응답의 id 를 setJustAddedId 에 넣는다(그 전에 넣으면 DOM 에 없다).
+  const addThread = (content: string, mentions: MentionIds) => {};
 
-  // 멘션 ID 를 이름·경로로 되살린다. 배관 단계에선 재조회가 대신한다.
-  const resolveMentions = (
-    mentions: MentionIds,
-  ): {
-    memberMentions: UserRef[];
-    endpointMentions: EndpointRef[];
-  } => ({
-    memberMentions: members
-      .filter((m) => mentions.userIds.includes(m.id))
-      .map((m) => ({ userId: m.id, userName: m.userName })),
-    endpointMentions: endpoints
-      .filter((e) => mentions.endpointIds.includes(e.id))
-      .map((e) => ({ endpointId: e.id, path: e.path, method: e.method })),
-  });
-
-  const addThread = (content: string, mentions: MentionIds) => {
-    if (!endpointId) return;
-    const id = -Date.now();
-    setThreads((prev) => [
-      ...prev,
-      {
-        id,
-        endpointId: Number(endpointId),
-        parentId: null,
-        content,
-        isDeleted: false,
-        author: me,
-        isAiGenerated: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        reactions: [],
-        ...resolveMentions(mentions),
-        replies: [],
-      },
-    ]);
-    setJustAddedId(id);
-  };
-
+  // TODO(5-3): useMutation(createReply). threadId 가 곧 parentId 다.
   const addReply = (
     threadId: number,
     content: string,
     mentions: MentionIds,
-  ) => {
-    if (!endpointId) return;
-    const id = -Date.now();
-    setThreads((prev) =>
-      prev.map((t) =>
-        t.id !== threadId
-          ? t
-          : {
-              ...t,
-              replies: [
-                ...t.replies,
-                {
-                  id,
-                  endpointId: Number(endpointId),
-                  parentId: threadId,
-                  content,
-                  isDeleted: false,
-                  author: me,
-                  isAiGenerated: false,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  reactions: [],
-                  ...resolveMentions(mentions),
-                },
-              ],
-            },
-      ),
-    );
-    setJustAddedId(id);
-  };
+  ) => {};
 
-  // 댓글·답글 어느 쪽이든 id 로 찾아 교체한다. content 와 멘션, updatedAt 만 바뀐다.
+  // TODO(5-4): useMutation(updateComment).
   const editComment = (
     commentId: number,
     content: string,
     mentions: MentionIds,
-  ) => {
-    const patch = <T extends CommentTree | CommentTree["replies"][number]>(
-      c: T,
-    ): T =>
-      c.id !== commentId
-        ? c
-        : {
-            ...c,
-            content,
-            updatedAt: new Date().toISOString(),
-            ...resolveMentions(mentions),
-          };
-
-    setThreads((prev) =>
-      prev.map((t) => ({
-        ...patch(t),
-        replies: t.replies.map(patch),
-      })),
-    );
-  };
-
-  if (!endpointId) {
-    return (
-      <>
-        <PanelHeader
-          total={null}
-          disabled
-          endpointId={0}
-          onPick={pickMoveTarget}
-        />
-        <p className="flex-1 px-2 pt-10 text-center text-sm text-fg-3">
-          엔드포인트를 선택하면 댓글이 표시됩니다
-        </p>
-      </>
-    );
-  }
+  ) => {};
 
   return (
     <>
-      <PanelHeader
-        total={total}
-        disabled={isEmpty}
-        endpointId={Number(endpointId)}
-        onPick={pickMoveTarget}
-      />
+      <PanelHeader actions={{ total, endpointId, onPick: pickMoveTarget }} />
 
-      <div className="min-h-0 flex-1 py-2">
+      <div className={PANEL.comments.body}>
         {isEmpty ? (
-          <p className="px-2 pt-10 text-center text-sm text-fg-3">
+          <p className="px-2 pt-16 text-center text-sm text-fg-3">
             첫 댓글을 남겨보세요
           </p>
         ) : (
           <ul className="flex flex-col gap-5">
+            {/* 댓글 정렬은 시간 순 asc. 제출 후 스크롤 + 하이라이트가 거기로 이동시켜 안 보이는 문제를 해결한다. */}
             {threads.map((thread) => (
               <li key={thread.id}>
                 <CommentThread
@@ -284,49 +227,53 @@ function CommentPanelInner() {
 }
 
 // 헤더 — 제목 + 개수 + 액션 2개.
-// total 이 null 이면 엔드포인트 미선택 상태라 개수를 감춘다.
-function PanelHeader({
-  total,
-  disabled,
-  endpointId,
-  onPick,
-}: {
-  total: number | null;
-  disabled: boolean;
-  endpointId: number;
-  onPick: (target: EndpointSummary) => void;
-}) {
+// actions 를 생략하면 미선택, 대기, 실패 중 하나다.
+// 개수를 모르고 두 액션도 성립하지 않아 제목만 그린다.
+type PanelHeaderProps = {
+  actions?: {
+    total: number;
+    endpointId: number;
+    onPick: (target: EndpointSummary) => void;
+  };
+};
+
+function PanelHeader({ actions }: PanelHeaderProps) {
   const { isOwner } = useCommentContext();
 
   return (
     <div className={PANEL.comments.stickyTop}>
-      <div className="flex items-center gap-2 pb-2">
+      {/* 버튼이 없을 경우 댓글 패널 헤더 높이가 달라질 수 있으므로, 최소 높이를 정해준다. */}
+      <div className="flex min-h-10 items-center gap-2 pb-2">
         <h3 className="text-md min-w-0 flex-1 truncate font-medium text-fg-2">
           댓글
-          {total !== null && total > 0 && (
+          {actions?.total ? (
             <span className="ml-1.5 font-normal tabular-nums text-fg-3">
-              {total}
+              {actions.total}
             </span>
-          )}
+          ) : null}
         </h3>
 
-        <IconButton
-          label="AI 요약"
-          disabled={disabled}
-          onClick={() => {
-            /* TODO(12-8) */
-          }}
-        >
-          <Sparkles className="size-4" aria-hidden="true" />
-        </IconButton>
+        {actions && (
+          <>
+            <IconButton
+              label="AI 요약"
+              disabled={actions.total === 0}
+              onClick={() => {
+                /* TODO(5-6) */
+              }}
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+            </IconButton>
 
-        {isOwner && (
-          <MoveCommentsPopover
-            currentEndpointId={endpointId}
-            disabled={disabled}
-            count={total ?? 0}
-            onPick={onPick}
-          />
+            {isOwner && (
+              <MoveCommentsPopover
+                currentEndpointId={actions.endpointId}
+                disabled={actions.total === 0}
+                count={actions.total}
+                onPick={actions.onPick}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

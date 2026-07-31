@@ -54,6 +54,7 @@ export const PANEL = {
       "sticky top-0 z-10 -mx-4 -mt-2 bg-linear-to-b from-70% from-surface-2 to-transparent px-4 pt-2",
     stickyBottom:
       "sticky bottom-0 z-10 -mx-4 bg-linear-to-t from-70% from-surface-2 to-transparent px-4 pb-3 pt-4",
+    body: "min-h-0 flex-1 py-2",
   },
   detail: {
     wide: "px-14 pt-2 pb-10",
