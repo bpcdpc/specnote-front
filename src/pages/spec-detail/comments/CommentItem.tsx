@@ -13,11 +13,12 @@ type CommentItemProps = {
   comment: CommentView;
   // 최상위 댓글만 답글을 받는다(2뎁스 고정). 대댓글에는 답글 버튼이 없다.
   isRoot?: boolean;
-  onEdit?: (
+  onEdit: (
     commentId: number,
     content: string,
     mentions: MentionIds,
   ) => Promise<void>;
+  onDelete: (commentId: number) => void;
 };
 
 // CommentItem — 댓글/답글 한 건 (공용)
@@ -35,6 +36,7 @@ export function CommentItem({
   comment,
   isRoot = false,
   onEdit,
+  onDelete,
 }: CommentItemProps) {
   const { me, editing, setEditing, highlightedId, setHighlightedId } =
     useCommentContext();
@@ -62,8 +64,8 @@ export function CommentItem({
 
   useEffect(() => {
     if (isHighlighted) {
-      // behavior:smooth 를 주지 않는다. smooth 는 거리에 비례해 오래 걸리는데 그동안
-      // 2초짜리 하이라이트가 흘러가, 긴 목록에서는 도착했을 때 이미 꺼져 있다.
+      // behavior:smooth 를 주지 않는다.
+      // 애니메이션이 2초가 넘으면, 사용자가 도착했을 때에는 하이라이트가 이미 끝나있다.
       // 에디터 열림 스크롤(CommentEditor)은 경쟁하는 애니메이션이 없어 smooth 를 쓴다.
       ref.current?.scrollIntoView({ block: "center" });
     }
@@ -153,9 +155,7 @@ export function CommentItem({
                   size="icon-xs"
                   label="삭제"
                   className="text-fg-3"
-                  onClick={() => {
-                    // TODO(5-4): DELETE /api/comments/:id 후 재조회.
-                  }}
+                  onClick={() => onDelete(id)}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
                 </IconButton>

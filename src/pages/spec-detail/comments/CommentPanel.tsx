@@ -26,11 +26,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
   createReply,
+  deleteComment,
   getComments,
   updateComment,
 } from "@/lib/api/comments";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
+import { ApiError } from "@/lib/api/client";
 
 // CommentPanel — 오른쪽 컬럼 골격
 //
@@ -67,7 +69,7 @@ export function CommentPanel({
 }
 
 function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
-  const { setHighlightedId } = useCommentContext();
+  const { editing, setEditing, setHighlightedId } = useCommentContext();
 
   const queryClient = useQueryClient();
 
@@ -90,6 +92,8 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     endpoint: EndpointSummary;
     count: number;
   } | null>(null);
+
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   const createCommentMutation = useMutation({
     // mutationFn 은 인자를 하나만 받기 때문에, 둘 이상은 객체로 묶어서 줘야한다.
@@ -132,6 +136,15 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
         queryKey: ["comments", endpointId],
       });
       setHighlightedId(comment.id);
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: number) => deleteComment(commentId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
     },
   });
 
@@ -182,7 +195,8 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     setMoveTarget({ endpoint, count: total });
   };
 
-  // 다이얼로그의 확인 버튼. 이름을 moveComments 로 두지 않는다 —
+  // 이동 다이얼로그의 확인 버튼.
+  // 이름을 moveComments 로 두지 않는다 —
   // 5-7 에서 lib/api/comments 의 moveComments 를 import 하면 같은 스코프에서 충돌한다.
   //
   // TODO(5-7): moveComments(endpointId, endpoint.id) 호출 후 양쪽 무효화.
@@ -199,10 +213,37 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     });
   };
 
+  // 삭제 다이얼로그의 확인 버튼.
+  // 성공 토스트를 띄우지 않는다 — 본문이 마스킹 문구로 바뀌어 결과가 이미 보인다.
+  // 실패는 toast 다. 아이콘 버튼이라 인라인으로 붙일 자리가 없다.
+  const confirmDelete = async () => {
+    if (deleteTargetId === null) return;
+
+    try {
+      await deleteCommentMutation.mutateAsync(deleteTargetId);
+
+      // 지운 댓글을 대상으로 열려 있던 에디터를 닫는다.
+      // 안 닫으면 답글 에디터가 남고, 거기서 제출하면 백엔드 normalizeReply 가
+      // isDeleted 를 보지 않아 삭제된 댓글에 답글이 달린다.
+      // 무조건 비우지 않는 이유는 다른 댓글을 편집 중일 수 있어서다.
+      const openTargetId =
+        editing?.mode === "reply" ? editing.threadId : editing?.commentId;
+
+      if (openTargetId === deleteTargetId) setEditing(null);
+    } catch (e) {
+      toast.add({
+        title: e instanceof ApiError ? e.message : "댓글을 삭제하지 못했습니다",
+        type: "error",
+      });
+    } finally {
+      setDeleteTargetId(null);
+    }
+  };
+
   // mutateAsync 를 쓴다.
   // mutate 는 Promise 를 반환하지 않아 CommentEditor 가 완료를 기다릴 수 없고,
   // 실패해도 입력이 지워진다.
-  const addThread = async (content: string, mentions: MentionIds) => {
+  const addComment = async (content: string, mentions: MentionIds) => {
     await createCommentMutation.mutateAsync({ content, mentions });
   };
 
@@ -248,6 +289,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
                   thread={thread}
                   onReply={addReply}
                   onEdit={editComment}
+                  onDelete={setDeleteTargetId}
                 />
               </li>
             ))}
@@ -257,9 +299,10 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
 
       <div className={PANEL.comments.stickyBottom}>
         <div className="pt-3">
-          <CommentEditor onSubmit={addThread} submitLabel="등록" />
+          <CommentEditor onSubmit={addComment} submitLabel="등록" />
         </div>
       </div>
+      {/* 이동 다이얼로그 */}
       <AlertDialog
         open={moveTarget !== null}
         onOpenChange={(o) => {
@@ -285,6 +328,36 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction onClick={confirmMove}>이동</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* 삭제 다이얼로그 */}
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(o) => {
+          if (!o) setDeleteTargetId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>글을 삭제할까요?</AlertDialogTitle>
+            {/* 답글 , 댓글 모두 소프트 삭제이므로 해당 내용을 사용자에게 알린다. */}
+            <AlertDialogDescription>
+              내용이 "삭제된 글입니다"로 바뀌며 되돌릴 수 없습니다. 답글과
+              리액션은 남습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCommentMutation.isPending}>
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteCommentMutation.isPending}
+            >
+              {deleteCommentMutation.isPending ? `삭제중...` : `삭제`}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
