@@ -108,7 +108,7 @@ export type EndpointDetail = {
 // ── comments ────────────────────────────────────────────
 
 // 프리즈마 댓글/리액션 원형.
-// 실제로 읽는 값은 Comment.id 하나다(justAddedId — 방금 등록한 항목으로 스크롤).
+// 실제로 읽는 값은 Comment.id 하나다(highlightedId — 방금 등록한 항목으로 스크롤).
 // Reaction 은 어느 필드도 읽지 않는다. api 함수 시그니처를 위해서만 둔다.
 export type Comment = {
   id: number;

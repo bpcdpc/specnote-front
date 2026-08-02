@@ -18,6 +18,7 @@ type CommentThreadProps = {
     content: string,
     mentions: MentionIds,
   ) => Promise<void>;
+  onDelete: (commentId: number) => void;
 };
 
 // CommentThread — 댓글 + 답글 묶음 (2뎁스 고정)
@@ -31,7 +32,12 @@ type CommentThreadProps = {
 //
 // 접기 — DOM 에서 빼지 않고 높이만 줄인다(grid 0fr↔1fr). 답글 작성 중에는
 // 접혀 있어도 강제로 편다. 안 그러면 에디터가 접힌 영역 안에 열려 안 보인다.
-export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
+export function CommentThread({
+  thread,
+  onReply,
+  onEdit,
+  onDelete,
+}: CommentThreadProps) {
   const { replies, ...parent } = thread;
   const { editing, setEditing } = useCommentContext();
   const [collapsed, setCollapsed] = useState(false);
@@ -44,7 +50,12 @@ export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
 
   return (
     <div className="flex flex-col gap-3 pl-0.5">
-      <CommentItem comment={parent} isRoot onEdit={onEdit} />
+      <CommentItem
+        comment={parent}
+        isRoot
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
 
       {(replies.length > 0 || replying) && (
         <div>
@@ -71,8 +82,7 @@ export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
             </button>
           )}
 
-          {/* 세로선을 여기 한 번만 둔다. 접기 컨테이너와 에디터에 각각 주면
-              둘 사이에서 선이 끊긴다. */}
+          {/* 세로선을 여기 한 번만 둔다. 접기 컨테이너와 에디터에 각각 주면 둘 사이에서 선이 끊긴다. */}
           <div className="mt-2 flex flex-col gap-3 border-l-3 border-border pl-3">
             {/* 접기 대상은 대댓글 목록뿐이다. */}
             {replies.length > 0 && (
@@ -90,7 +100,11 @@ export function CommentThread({ thread, onReply, onEdit }: CommentThreadProps) {
                   <ul className="flex flex-col gap-3">
                     {replies.map((reply) => (
                       <li key={reply.id}>
-                        <CommentItem comment={reply} onEdit={onEdit} />
+                        <CommentItem
+                          comment={reply}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                        />
                       </li>
                     ))}
                   </ul>
