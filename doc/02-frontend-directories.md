@@ -8,6 +8,7 @@
 | v0.4 | 2026.07.19 SUN | `project-form/` 내부 재편 — `ProjectFormPage`(공용) 폐기, **`ProjectCreatePage` + `ProjectSettingsPage`로 분리**(폴더는 유지). `login`, `signup`을 **`auth/`로 병합**. 묶음 기준을 "조각 공유" → **"같은 도메인"** 으로 재정의. `SpecJsonUrlField` 개명. `PageHeading` 신설. `lib/types.ts`, `constants.ts` 생성. **코드 규약은 `05-code-conventions`로, 조각 책임과 헤더 조립은 `03-frontend-layouts`로 이관.**                                                                                                                                                                        |
 | v0.5 | 2026.07.20 MON | 11단계 구현 결과 반영. 신규 파일 9종 추가, `HeaderBreadcrumb` → `Breadcrumb` 개명, `BackButton` 미사용 표시. **`hooks/` 폴더를 만들지 않는 근거** 절 신설. `lib/mock.ts`는 데이터 단계에서 삭제할 파일이라 트리에 올리지 않는다.                                                                                                                                                                                                                                                                                                                                                        |
 | v0.6 | 2026.07.29 WED | 배관 1~4단계 결과 반영. 신규 파일 11종 추가(`client`, `queryClient`, `auth`, `projects`, `endpoints`, `routeParams`, `LoadingState`, `ErrorState`, `IconButton`, `SpecError`, `CommentContext`). 누락분 `panelMetrics` 추가. **`MoveThreadPopover` → `MoveCommentsPopover` 개명**(FR-12가 엔드포인트 단위 이동으로 바뀜). `queryClient` 위치 정정(`lib/` → `lib/api/`), `lib/api/auth.ts` 설명에서 존재하지 않는 `logout` 삭제. 배치 판단 기준에 **`lib/api/` 도메인 기준 분할** 추가. **헤더 조각의 위치 → `03-frontend-layouts`, `IconButton` 공용화 근거 → `07-components`로 이관.** |
+| v0.7 | 2026.08.02 SUN | 13단계(알림) 결과 반영. `NotificationDropdown`의 "미구현" 표시 해소, `UserMenu`와 `lib/api/notifications.ts` 설명을 구현 결과로 갱신. 배치 판단 기준 예시에 `NotificationDropdown` 추가(소비처가 사는 곳을 따라간다). 누락분 `lib/formatTime.ts` 추가. `comments/` 트리 기호 순서 정정. **배관 완료로 `lib/mock.ts` 절을 과거형으로 정리.**                                                                                                                                                                                                                                             |
 
 ---
 
@@ -88,15 +89,15 @@ src/
 │   │   ├── SpecUpdateBanner.tsx      # snapshotId 불일치 배너
 │   │   ├── useSpecCache.ts           # components 캐시 + $ref 지연 해석
 │   │   └── comments/                 # 댓글 패널 (spec-detail 전용)
-│   │       ├── CommentPanel.tsx
-│   │       ├── CommentContext.tsx    # me, isOwner, 멤버·엔드포인트 후보, 편집 상태
+│   │       ├── CommentPanel.tsx      # 쿼리·mutation 소유. ?comment= 딥링크 수신
+│   │       ├── CommentContext.tsx    # me, isOwner, 멤버·엔드포인트 후보, 편집 상태, 하이라이트
 │   │       ├── CommentThread.tsx
 │   │       ├── CommentItem.tsx
 │   │       ├── CommentEditor.tsx     # 평문 textarea + @ / # 자동완성
 │   │       ├── MentionPopover.tsx
 │   │       ├── CommentContent.tsx    # react-markdown 렌더
 │   │       ├── ReactionBar.tsx
-│   │       └── MoveCommentsPopover.tsx  # [Owner] 엔드포인트 단위 댓글 이동
+│   │       ├── MoveCommentsPopover.tsx  # [Owner] 엔드포인트 단위 댓글 이동
 │   │       ├── mentions.ts              # 멘션 토큰 ↔ 표시 ↔ ID 변환
 │   │       └── reactions.ts             # 리액션 이모지, 라벨, 순서
 │   │
@@ -127,9 +128,9 @@ src/
 │   ├── EmptyState.tsx                # PageHeading + action
 │   ├── LoadingState.tsx              # 조회 대기 한 줄
 │   ├── ErrorState.tsx                # 조회 실패 + 선택적 재시도
-│   ├── UserMenu.tsx                  # 아바타 + 드롭다운
+│   ├── UserMenu.tsx                  # 아바타 + 드롭다운. 알림 쿼리와 읽음·이동을 소유
 │   ├── TimeAgo.tsx                   # ISO 문자열 → "3분 전"
-│   └── NotificationDropdown.tsx      # 알림 목록 (미구현)
+│   └── NotificationDropdown.tsx      # 알림 목록 (표시 전용, UserMenu 안)
 │
 ├── lib/                              # 배관 — 도메인 무관 인프라
 │   ├── api/                          # API 호출
@@ -138,12 +139,13 @@ src/
 │   │   ├── auth.ts                   # login, signup, getMe
 │   │   ├── projects.ts               # 프로젝트 CRUD, 멤버, 스펙 커밋
 │   │   ├── endpoints.ts              # 엔드포인트 상세
-│   │   ├── comments.ts               # 댓글, 리액션, 이동, AI 요약 (배관 5)
-│   │   └── notifications.ts          # 알림 목록, 읽음 (13단계)
+│   │   ├── comments.ts               # 댓글, 리액션, 이동, AI 요약
+│   │   └── notifications.ts          # 알림 목록, 읽음 처리
 │   │
 │   ├── constants.ts                  # ROLE, REACTION_TYPE, NOTIFICATION_TYPE, HTTP_METHOD
 │   ├── types.ts                      # 백엔드 응답 타입
 │   ├── routeParams.ts                # path param → 양의 정수 (parseId)
+│   ├── formatTime.ts                 # timeAgo, fullTime
 │   ├── useMediaQuery.ts              # 도메인 무관 훅
 │   └── utils.ts                      # cn() 헬퍼
 │
@@ -176,6 +178,8 @@ src/
 - `ProjectCard` — 대시보드에서만 씀 → `pages/dashboard/`
 - `PageHeading` — 대시보드, 생성, 설정, 404가 공유 → `components/`
 - `CommentPanel` — SpecDetail에서만 씀 → `pages/spec-detail/comments/`
+- `NotificationDropdown` — `UserMenu` 안에서만 쓰지만 그 `UserMenu`가
+  `components/`에 산다 → `components/`. 소비처가 사는 곳을 따라간다
 
 **`lib/api/` 분할은 URL이 아니라 도메인 기준이다.**
 
@@ -205,9 +209,6 @@ projectId를 역참조해야 해서이고, 구현은 `comments.service.ts`가 �
 `SpecPanelsContext`, `BearerTokenContext`, `CommentContext`는 그 화면 트리 안에서만 사는
 값이라 화면 폴더에 둔다. Context라는 형태가 `app/` 배치의 근거가 되지 않는다.
 
-**목 데이터도 같은 기준을 따른다.** 여러 화면이 먹으면 `lib/mock.ts`,
-한 화면만 쓰면 그 화면 폴더에 둔다. 현재는 전자라 `lib/`에 있다.
-
-`lib/mock.ts`는 **트리에 올리지 않는다.** 배관이 끝나면 삭제할 파일이라
-문서에 올리면 지울 때 문서를 또 고쳐야 한다. 제거 시점은 `01-frontend-stack`의
-구현 순서에 적혀 있다.
+**목 데이터도 같은 기준을 따랐다.** 여러 화면이 먹어 `lib/mock.ts`에 뒀고,
+배관 5와 함께 제거했다. 트리에 올리지 않은 것도 같은 이유다 —
+지울 파일을 문서에 올리면 지울 때 문서를 또 고쳐야 한다.
