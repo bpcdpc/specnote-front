@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { PANEL } from "../panelMetrics";
 import { IconButton } from "@/components/IconButton";
@@ -26,6 +26,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
   createReply,
+  createSummary,
   deleteComment,
   getComments,
   toggleReaction,
@@ -160,6 +161,15 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     },
   });
 
+  const summarizeCommentMutation = useMutation({
+    mutationFn: (endpointId: number) => createSummary(endpointId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+    },
+  });
+
   if (endpointId === null) {
     return (
       <>
@@ -202,6 +212,16 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
   // 삭제된 댓글도 자리를 지키므로(FR-5.3) 세는 대상에 포함한다.
   const total = threads.reduce((sum, t) => sum + 1 + t.replies.length, 0);
   const isEmpty = total === 0;
+
+  // AI 요약 버튼의 활성 조건.
+  // 서버는 수집에서 삭제분과 이전 AI 요약을 빼므로, total > 0 이어도 남는 게 없으면 400 이 온다.
+  // 개수가 아니라 1건 이상 있는지만 본다.
+  // 답글도 수집 대상이다 — 서버 조건에 parentId 가 없다.
+  const canSummarize = threads.some(
+    (t) =>
+      (!t.isDeleted && !t.isAiGenerated) ||
+      t.replies.some((r) => !r.isDeleted && !r.isAiGenerated),
+  );
 
   const pickMoveTarget = (endpoint: EndpointSummary) => {
     setMoveTarget({ endpoint, count: total });
@@ -307,9 +327,37 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     }
   };
 
+  const summarizeComment = async () => {
+    try {
+      const comment = await summarizeCommentMutation.mutateAsync(endpointId);
+      setHighlightedId(comment.id);
+    } catch (e) {
+      // 에러 메세지 분기 :
+      // 400 요약할 댓글이 없습니다. — 그대로 사용.
+      // 500 AI 계정이 없습니다. npx prisma db seed 를 먼저 실행하세요. — 사용자에게 띄울 수 없음.
+      // 500 Azure 실패 — 문구가 정해져 있지 않다
+      toast.add({
+        title:
+          e instanceof ApiError && e.status < 500
+            ? e.message
+            : "AI 댓글 요약에 실패했습니다",
+        type: "error",
+      });
+    }
+  };
+
   return (
     <>
-      <PanelHeader actions={{ total, endpointId, onPick: pickMoveTarget }} />
+      <PanelHeader
+        actions={{
+          total,
+          endpointId,
+          onSummarize: summarizeComment,
+          canSummarize,
+          isSummarizing: summarizeCommentMutation.isPending,
+          onPick: pickMoveTarget,
+        }}
+      />
 
       <div className={PANEL.comments.body}>
         {isEmpty ? (
@@ -409,6 +457,9 @@ type PanelHeaderProps = {
   actions?: {
     total: number;
     endpointId: number;
+    onSummarize: () => void;
+    canSummarize: boolean;
+    isSummarizing: boolean;
     onPick: (target: EndpointSummary) => void;
   };
 };
@@ -432,16 +483,15 @@ function PanelHeader({ actions }: PanelHeaderProps) {
         {actions && (
           <>
             <IconButton
-              label="AI 요약"
-              // TODO(5-6): 조건이 서버와 어긋난다. 서버는 삭제분과 이전 AI 요약을
-              //   수집에서 빼므로, 전부 삭제됐거나 전부 요약이면 total > 0 인데 400 이 온다.
-              //   "미삭제 && !isAiGenerated 인 댓글 1건 이상"으로 바꿔야 한다.
-              disabled={actions.total === 0}
-              onClick={() => {
-                /* TODO(5-6) */
-              }}
+              label={actions.isSummarizing ? "요약 중" : "AI 요약"}
+              disabled={!actions.canSummarize || actions.isSummarizing}
+              onClick={actions.onSummarize}
             >
-              <Sparkles className="size-4" aria-hidden="true" />
+              {actions.isSummarizing ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Sparkles className="size-4" aria-hidden="true" />
+              )}
             </IconButton>
 
             {isOwner && (
