@@ -8,6 +8,7 @@ import { IconButton } from "@/components/IconButton";
 import { cn } from "@/lib/utils";
 import type { CommentView, MentionIds } from "@/lib/types";
 import { useEffect, useRef } from "react";
+import type { REACTION_TYPE } from "@/lib/constants";
 
 type CommentItemProps = {
   comment: CommentView;
@@ -19,6 +20,7 @@ type CommentItemProps = {
     mentions: MentionIds,
   ) => Promise<void>;
   onDelete: (commentId: number) => void;
+  onToggleReaction: (commentId: number, type: REACTION_TYPE) => void;
 };
 
 // CommentItem — 댓글/답글 한 건 (공용)
@@ -37,6 +39,7 @@ export function CommentItem({
   isRoot = false,
   onEdit,
   onDelete,
+  onToggleReaction,
 }: CommentItemProps) {
   const { me, editing, setEditing, highlightedId, setHighlightedId } =
     useCommentContext();
@@ -125,9 +128,7 @@ export function CommentItem({
           <footer className="flex flex-wrap items-center gap-1">
             <ReactionBar
               reactions={reactions}
-              onToggle={() => {
-                // TODO(5-5): POST /api/comments/:id/reactions 후 재조회.
-              }}
+              onToggle={(type) => onToggleReaction(id, type)}
             />
 
             {canReply && (

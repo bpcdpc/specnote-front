@@ -5,6 +5,7 @@ import { CommentEditor } from "./CommentEditor";
 import { useCommentContext } from "./CommentContext";
 import { cn } from "@/lib/utils";
 import type { CommentTree, MentionIds } from "@/lib/types";
+import type { REACTION_TYPE } from "@/lib/constants";
 
 type CommentThreadProps = {
   thread: CommentTree;
@@ -19,6 +20,7 @@ type CommentThreadProps = {
     mentions: MentionIds,
   ) => Promise<void>;
   onDelete: (commentId: number) => void;
+  onToggleReaction: (commentId: number, type: REACTION_TYPE) => void;
 };
 
 // CommentThread — 댓글 + 답글 묶음 (2뎁스 고정)
@@ -37,6 +39,7 @@ export function CommentThread({
   onReply,
   onEdit,
   onDelete,
+  onToggleReaction,
 }: CommentThreadProps) {
   const { replies, ...parent } = thread;
   const { editing, setEditing } = useCommentContext();
@@ -55,6 +58,7 @@ export function CommentThread({
         isRoot
         onEdit={onEdit}
         onDelete={onDelete}
+        onToggleReaction={onToggleReaction}
       />
 
       {(replies.length > 0 || replying) && (
@@ -104,6 +108,7 @@ export function CommentThread({
                           comment={reply}
                           onEdit={onEdit}
                           onDelete={onDelete}
+                          onToggleReaction={onToggleReaction}
                         />
                       </li>
                     ))}

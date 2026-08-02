@@ -28,11 +28,13 @@ import {
   createReply,
   deleteComment,
   getComments,
+  toggleReaction,
   updateComment,
 } from "@/lib/api/comments";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 import { ApiError } from "@/lib/api/client";
+import type { REACTION_TYPE } from "@/lib/constants";
 
 // CommentPanel — 오른쪽 컬럼 골격
 //
@@ -148,6 +150,16 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     },
   });
 
+  const toggleReactionMutation = useMutation({
+    mutationFn: (vars: { commentId: number; type: REACTION_TYPE }) =>
+      toggleReaction(vars.commentId, vars.type),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+    },
+  });
+
   if (endpointId === null) {
     return (
       <>
@@ -240,9 +252,12 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     }
   };
 
-  // mutateAsync 를 쓴다.
-  // mutate 는 Promise 를 반환하지 않아 CommentEditor 가 완료를 기다릴 수 없고,
-  // 실패해도 입력이 지워진다.
+  // mutate 말고 mutateAsync 를 쓴다.
+  // mutate 는 실패를 throw 하지 않으므로 CommentEditor 의 try/catch 를 안 타고,
+  // catch 대신 그 아래 setValue("") 가 실행되어 서버가 거절한 입력이 사라진다.
+  // 실패했을 때 남아있어야 하는 값을 CommentEditor에서 가지고 있기 때문에
+  // 여기에서는 값을 stale 처리만 해주고 실제 catch는 CommentEditor에서 처리한다.
+  // addComment, addReply, editComment 모두 마찬가지
   const addComment = async (content: string, mentions: MentionIds) => {
     await createCommentMutation.mutateAsync({ content, mentions });
   };
@@ -271,6 +286,27 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     });
   };
 
+  // 리액션 토글.
+  // 응답이 Reaction 한 행(또는 null)이라
+  // 화면이 쓰는 값 (count, reactedByMe, users)를 만들 수 없다. 재조회가 유일한 경로다.
+  // 성공 토스트는 없다 — 칩의 숫자와 배경이 결과를 그대로 보여준다.
+  // 실패만 toast 다. ReactionBar 에는 문구를 붙일 자리가 없다(패널 최소폭 240px).
+  //
+  // 실패후 처리에 필요한 값들이 자식 컴포넌트에 남아있을 필요가 없어서 여기에서 catch 할 수 있다.
+  const toggleCommentReaction = async (
+    commentId: number,
+    type: REACTION_TYPE,
+  ) => {
+    try {
+      await toggleReactionMutation.mutateAsync({ commentId, type });
+    } catch (e) {
+      toast.add({
+        title: e instanceof ApiError ? e.message : "반응을 남기지 못했습니다",
+        type: "error",
+      });
+    }
+  };
+
   return (
     <>
       <PanelHeader actions={{ total, endpointId, onPick: pickMoveTarget }} />
@@ -290,6 +326,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
                   onReply={addReply}
                   onEdit={editComment}
                   onDelete={setDeleteTargetId}
+                  onToggleReaction={toggleCommentReaction}
                 />
               </li>
             ))}
