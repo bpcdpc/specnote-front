@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { REACTION_META, REACTION_ORDER } from "./reactions";
+import { REACTION_META, REACTION_ORDER, sortReactions } from "./reactions";
 import type { REACTION_TYPE } from "@/lib/constants";
 import type { ReactionSummary } from "@/lib/types";
 import { ICON_BUTTON_OVERRIDE } from "@/components/IconButton";
@@ -32,12 +32,14 @@ type ReactionBarProps = {
 export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
   const [open, setOpen] = useState(false);
 
+  const sortedReactions = sortReactions(reactions);
+
   const summaryOf = (type: REACTION_TYPE) =>
-    reactions.find((r) => r.type === type);
+    sortedReactions.find((r) => r.type === type);
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {reactions.map((reaction) => {
+      {sortedReactions.map((reaction) => {
         const meta = REACTION_META[reaction.type];
 
         return (
@@ -116,9 +118,9 @@ export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
           </div>
 
           {/* 아래 — 누가 남겼는지 */}
-          {reactions.length > 0 && (
+          {sortedReactions.length > 0 && (
             <ul className="flex flex-col gap-1.5 border-t border-border pt-2">
-              {reactions.map((reaction) => (
+              {sortedReactions.map((reaction) => (
                 <li key={reaction.type} className="flex gap-2 text-xs">
                   <span aria-hidden="true" className="shrink-0">
                     {REACTION_META[reaction.type].emoji}
