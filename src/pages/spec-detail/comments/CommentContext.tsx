@@ -35,10 +35,18 @@ export function CommentProvider({
   isOwner,
   members,
   endpoints,
+  initialHighlightedId = null,
   children,
-}: CommentData & { children: ReactNode }) {
+}: CommentData & {
+  // 알림 딥링크로 들어온 댓글. 첫 렌더에만 반영된다 —
+  // key={endpointId} 라 엔드포인트가 바뀌면 Provider 째 새로 만들어진다.
+  initialHighlightedId?: number | null;
+  children: ReactNode;
+}) {
   const [editing, setEditing] = useState<EditingState>(null);
-  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+  const [highlightedId, setHighlightedId] = useState<number | null>(
+    initialHighlightedId,
+  );
 
   // 새로 멘션하거나 옮길 수 있는 대상은 살아 있는 엔드포인트뿐이다.
   //

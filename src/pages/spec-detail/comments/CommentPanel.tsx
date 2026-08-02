@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { parseId } from "@/lib/routeParams";
+import { useSpecPanels } from "../SpecPanelsContext";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { PANEL } from "../panelMetrics";
@@ -59,6 +62,33 @@ export function CommentPanel({
   endpoints,
   endpointId,
 }: CommentData & { endpointId: number | null }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { setCommentsOpen } = useSpecPanels();
+
+  // 알림 딥링크 — /projects/:id/endpoints/:id?comment=:commentId (03-frontend-layouts).
+  // parseId 로 거른다. 남이 준 URL 이라 값을 신뢰하지 않는다.
+  const deepLinkId = parseId(searchParams.get("comment") ?? undefined);
+
+  // 소비 후 파라미터를 뗀다.
+  //
+  // 안 떼면 세 가지가 남는다 —
+  // 1. 주소창에 죽은 값
+  // 2. 이 엔드포인트를 떠났다 돌아올 때마다 되살아나는 하이라이트
+  // 3. 사용자가 URL 을 복사했을 때 남에게 전달되는 남의 알림 흔적.
+  //
+  // replace 로 히스토리를 늘리지 않는다. 뒤로가기가 같은 화면을 두 번 거치면 안 된다.
+  useEffect(() => {
+    if (deepLinkId === null) return;
+
+    // 좁은 폭에서는 댓글 패널이 닫힌 채로 도착한다.
+    // 하이라이트는 화면 밖에서 뜨고 스스로 꺼져 흔적이 남지 않는다.
+    setCommentsOpen(true);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("comment");
+    setSearchParams(next, { replace: true });
+  }, [deepLinkId, searchParams, setSearchParams, setCommentsOpen]);
+
   return (
     <CommentProvider
       key={endpointId}
@@ -66,6 +96,9 @@ export function CommentPanel({
       isOwner={isOwner}
       members={members}
       endpoints={endpoints}
+      // 첫 렌더에만 쓰인다. 파라미터를 떼면 이 값은 null 이 되지만
+      // Provider 는 이미 만들어진 뒤라 상태가 유지된다.
+      initialHighlightedId={deepLinkId}
     >
       <CommentPanelInner endpointId={endpointId} />
     </CommentProvider>
