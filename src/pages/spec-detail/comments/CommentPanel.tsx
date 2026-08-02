@@ -29,6 +29,7 @@ import {
   createSummary,
   deleteComment,
   getComments,
+  moveComments,
   toggleReaction,
   updateComment,
 } from "@/lib/api/comments";
@@ -170,6 +171,19 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
     },
   });
 
+  const moveCommentsMutation = useMutation({
+    mutationFn: (vars: { endpointId: number; targetEndpointId: number }) =>
+      moveComments(vars.endpointId, vars.targetEndpointId),
+    onSuccess: async (_data, vars) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", endpointId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["comments", vars.targetEndpointId],
+      });
+    },
+  });
+
   if (endpointId === null) {
     return (
       <>
@@ -229,20 +243,41 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
 
   // 이동 다이얼로그의 확인 버튼.
   // 이름을 moveComments 로 두지 않는다 —
-  // 5-7 에서 lib/api/comments 의 moveComments 를 import 하면 같은 스코프에서 충돌한다.
+  // lib/api/comments 의 moveComments 와 같은 스코프에서 충돌한다.
   //
-  // TODO(5-7): moveComments(endpointId, endpoint.id) 호출 후 양쪽 무효화.
-  //   원본 ["comments", endpointId] 와 대상 ["comments", endpoint.id] 둘 다 —
-  //   대상을 빼먹으면 옮겨간 곳을 열었을 때 옛 목록이 보인다.
-  const confirmMove = () => {
+  // 무효화가 둘이다 — 원본과 대상. 대상을 빼먹으면 옮겨간 곳을 열었을 때 옛 목록이 보인다.
+  //
+  // 이동하면 이 엔드포인트의 댓글이 전량 사라진다.
+  // 열려 있던 에디터를 닫지 않으면 대상이 없어진 채 남고, 거기서 제출하면 404 다.
+  // 전량이라 조건 비교가 필요 없다.
+  //
+  // 성공도 toast 다.
+  // 삭제/리액션과 달리 결과가 "댓글이 사라짐"뿐이라 어디로 갔는지 화면에서 알 수 없기 때문에
+  // toast로 알린다.
+  const confirmMove = async () => {
     if (!moveTarget) return;
     const { endpoint } = moveTarget;
-    setMoveTarget(null);
-    toast.add({
-      title: "댓글을 옮겼습니다",
-      description: `${endpoint.method.toUpperCase()} ${endpoint.path}`,
-      type: "success",
-    });
+
+    try {
+      await moveCommentsMutation.mutateAsync({
+        endpointId,
+        targetEndpointId: endpoint.id,
+      });
+      setEditing(null);
+      toast.add({
+        title: "댓글을 옮겼습니다",
+        description: `${endpoint.method.toUpperCase()} ${endpoint.path}`,
+        type: "success",
+      });
+    } catch (e) {
+      toast.add({
+        title:
+          e instanceof ApiError ? e.message : "댓글을 옮기는데 실패했습니다",
+        type: "error",
+      });
+    } finally {
+      setMoveTarget(null);
+    }
   };
 
   // 삭제 다이얼로그의 확인 버튼.
@@ -411,8 +446,16 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMove}>이동</AlertDialogAction>
+            <AlertDialogCancel disabled={moveCommentsMutation.isPending}>
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmMove}
+              disabled={moveCommentsMutation.isPending}
+            >
+              {moveCommentsMutation.isPending ? `이동중...` : `이동`}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
