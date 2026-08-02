@@ -176,6 +176,20 @@ export type NotificationView = {
   endpointId: number | null; // MENTIONED
 };
 
+// PATCH /api/notifications/:id/read 응답. Prisma 원형 그대로다.
+// 화면은 이 값을 쓰지 않는다 — 읽음 처리 후 목록을 재조회한다.
+// api 함수 시그니처를 위해서만 둔다.
+export type Notification = {
+  id: number;
+  type: NOTIFICATION_TYPE;
+  recipientId: number;
+  senderId: number;
+  isRead: boolean;
+  mentionedCommentId: number | null;
+  invitedProjectId: number | null;
+  createdAt: string;
+};
+
 // ── 프론트 내부 ─────────────────────────────────────────
 
 // 백엔드 응답이 아니다. 에디터가 본문에서 뽑아 CreateCommentDto 로 보낼 ID 묶음.
