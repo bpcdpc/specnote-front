@@ -1,0 +1,36 @@
+name: Deploy frontend to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # 빌드가 끝난 뒤 devDependencies를 덜어낸다.
+      # express와 http-proxy-middleware만 남는다.
+      - run: npm prune --omit=dev
+
+      - name: Package
+        run: |
+          mkdir deploy
+          cp -r dist server package.json package-lock.json node_modules deploy/
+          cd deploy && zip -r ../release.zip . > /dev/null
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: web-specnote
+          publish-profile: ${{ secrets.FE_PUBLISH_PROFILE }}
+          package: release.zip
