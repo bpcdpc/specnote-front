@@ -101,8 +101,13 @@ export type EndpointDetail = {
   tags: string[];
   operationJson: unknown; // operation JSON, 프론트가 파싱 (서버 pass-through)
   isDeleted: boolean;
-  // ProjectView.snapshotId 와 비교해 스펙 갱신을 감지한다(FR-10.6).
+  // 이 엔드포인트가 나온 스냅샷 아이디
+  // operationJson, operationId, summary, tags, isDeleted 의 정보 출처가 된다.
+  // id, path, method는 유니크 키라서 스냅샷 버전과 상관없다.
+  // ?snapshotId를 최신보다 큰 값으로 요청할 경우, 최신값이 온다.
   snapshotId: number;
+  // 서버의 현재 최신 스냅샷. ProjectView.snapshotId 와 비교해 스펙 갱신을 감지한다(FR-10.6).
+  latestSnapshotId: number;
 };
 
 // ── comments ────────────────────────────────────────────
