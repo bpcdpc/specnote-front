@@ -5,6 +5,7 @@
 | v0.1 | 2026.07.19 SUN | 최초 작성. 흩어져 있던 코드 규약을 모음 — Base UI 문법(`01`에서), 폼 작성 규칙(`01`에서), `cn()` 병합, enum과 타입 표기(`02`에서), heading 계층(`03`에서).                                                                                                                                                                                                                |
 | v0.2 | 2026.07.20 MON | 11단계 구현 결과 반영. `HTTP_METHODS`를 소문자로 변경(OAS Path Item Object의 키가 소문자이고 `spec-extractor`가 그대로 저장한다), `isHttpMethod` 위치를 `types.ts` → `constants.ts`로 정정, 좁히기 예제에서 `toUpperCase()` 정규화 제거, heading 계층표에 `h3`의 화면 내 구획 제목 용도 추가, TS 좁히기 함정 절 신설.                                                     |
 | v0.3 | 2026.07.29 WED | **문서 분할** — heading 계층과 한글 입력 조합(IME)을 `07-components`로 이관. 좁히기 절에 **경계 좁히기 3종 표**(`isHttpMethod`, `ApiError`, `parseId`) 추가. 폼 절에 에러 문구를 화면이 그린다는 규칙 추가. 주석의 `TODO` 형식을 배관 단계 기준으로 정정. **표기 절에 가운뎃점 최소화 규칙 추가**(`04-design-tokens`가 이미 이 문서를 가리키고 있었으나 실제로는 없었다). |
+| v0.4 | 2026.08.17 MON | 스펙 조회 재설계 반영. 응답 타입 절 3번의 예시를 삭제된 `EndpointSummary.method`에서 **`SpecOperation.method`** 로 교체.                                                                                                                                                                                                                                                  |
 
 > 이 문서는 **"어떻게 쓰는가"** 를 다룬다.
 > 무엇을 어디에 두는가는 `02-frontend-directories`, 화면 구조는 `03-frontend-layouts`,
@@ -115,7 +116,7 @@ export function isHttpMethod(m: string): m is HTTP_METHOD {
 
 1. **날짜는 `string`이다.** 백엔드가 `Date`로 선언했어도 JSON 직렬화되면 ISO 문자열이다.
 2. **enum은 `constants.ts`에서 import한다.** `types.ts`에서 중복 정의하지 않는다.
-3. **넓은 타입은 그대로 받는다.** `EndpointSummary.method`는 백엔드가 주는 대로 `string`이다.
+3. **넓은 타입은 그대로 받는다.** `SpecOperation.method`는 백엔드가 주는 대로 `string`이다.
 4. **요청 DTO는 두지 않는다.** `lib/api/*.ts`의 함수 시그니처가 그 역할을 한다.
    응답 타입만 공유 자산이고, 요청 형태는 호출 지점 하나에만 필요하다.
 

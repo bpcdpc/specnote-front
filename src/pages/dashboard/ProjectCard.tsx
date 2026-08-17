@@ -25,7 +25,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       </div>
 
       {/* 2행 — description (0~2줄, 항상 2줄 높이 확보) */}
-      <p className="line-clamp-2 min-h-[2.5rem] text-sm text-fg-3 pr-8">
+      <p className="line-clamp-2 min-h-10 text-sm text-fg-3 pr-8">
         {project.description ?? ""}
       </p>
     </Link>

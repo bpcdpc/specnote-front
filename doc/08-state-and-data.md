@@ -1,9 +1,10 @@
 # 상태와 데이터
 
-| 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                            |
-| ---- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.1 | 2026.07.29 WED | 최초 작성. 상태 관리 원칙을 `01-frontend-stack`에서 옮기고, 배관 1~4단계에서 굳은 규약을 모음 — queryKey, `parseId`, 전역 쿼리 설정, 무효화, 인증 상태, API 함수 레이어.                                                                             |
-| v0.2 | 2026.08.02 SUN | 배관 5(댓글)와 13단계(알림) 반영. queryKey에 `["notifications"]` 추가. **폴링 절 신설** — 전역 `refetchInterval`은 두지 않고 알림만 개별로 건다. **쿼리와 mutation의 소유권 절 신설** — 팝업 안에 사는 조각, 언마운트되는 경로에서의 성공·실패 처리. |
+| 버전 | 일시           | 변경 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.1 | 2026.07.29 WED | 최초 작성. 상태 관리 원칙을 `01-frontend-stack`에서 옮기고, 배관 1~4단계에서 굳은 규약을 모음 — queryKey, `parseId`, 전역 쿼리 설정, 무효화, 인증 상태, API 함수 레이어.                                                                                                                                                                                                                                                                                                                                                              |
+| v0.2 | 2026.08.02 SUN | 배관 5(댓글)와 13단계(알림) 반영. queryKey에 `["notifications"]` 추가. **폴링 절 신설** — 전역 `refetchInterval`은 두지 않고 알림만 개별로 건다. **쿼리와 mutation의 소유권 절 신설** — 팝업 안에 사는 조각, 언마운트되는 경로에서의 성공·실패 처리.                                                                                                                                                                                                                                                                                  |
+| v0.3 | 2026.08.17 MON | **스펙 조회 재설계 반영.** 스펙 데이터를 여러 채널로 나눠 받으면서 버전을 맞추려던 구조를 채널 하나로 합쳤다. **스펙 앵커 절 신설** — `SpecAnchorContext`, `["spec", id, anchor]`, 앵커 고정과 이동, 배너 판정. queryKey 표 개편 — 단건 프로젝트 `["projects", id]` → `["project", id]`, 멤버 키 동반 변경, `["endpoints", id]` 삭제. 폴링 절에 프로젝트 메타 추가. `exact` 절의 스펙 커밋 예시를 앵커 기반으로 교체. API 함수 예시를 `getSpec`으로 교체. `client.ts` 절의 배포 구조 서술 정정(`10-deploy-plan`의 문서 충돌 표 반영). |
 
 > 어느 폴더에 두는가는 `02-frontend-directories`, 문법 규약은 `05-code-conventions`,
 > 대기와 실패 표시는 `07-components`.
@@ -12,11 +13,11 @@
 
 ## 상태 3분류
 
-| 종류                 | 어디서                       | 예                                           |
-| -------------------- | ---------------------------- | -------------------------------------------- |
-| 서버 데이터          | **TanStack Query**           | 프로젝트 목록과 정보, 엔드포인트, 댓글, 알림 |
-| 전역 클라이언트 상태 | **Context** (`app/`)         | 테마, 로그인 유저 + JWT                      |
-| 화면 스코프 상태     | `useState` 또는 화면 Context | Bearer 토큰, 패널 열림/접힘, 댓글 편집 상태  |
+| 종류                 | 어디서                       | 예                                          |
+| -------------------- | ---------------------------- | ------------------------------------------- |
+| 서버 데이터          | **TanStack Query**           | 프로젝트 목록과 메타, 스펙, 댓글, 알림      |
+| 전역 클라이언트 상태 | **Context** (`app/`)         | 테마, 로그인 유저 + JWT, 스펙 앵커          |
+| 화면 스코프 상태     | `useState` 또는 화면 Context | Bearer 토큰, 패널 열림/접힘, 댓글 편집 상태 |
 
 **"현재 프로젝트"를 전역 상태로 들지 않는다.** URL의 `:projectId`가 그 역할을 하고,
 여러 컴포넌트가 같은 queryKey를 부르면 Query가 같은 캐시를 돌려준다.
@@ -24,7 +25,9 @@
 **선택된 엔드포인트도 상태가 아니다.** 소유자는 URL이다. 새로고침과 뒤로가기가 살아야 하고,
 알림 딥링크가 같은 경로를 그대로 쓴다.
 
-**전역 Context는 테마와 로그인 유저 둘뿐이다.** `ProjectContext` 같은 건 만들지 않는다.
+**전역 Context는 테마, 로그인 유저, 스펙 앵커 셋뿐이다.** `ProjectContext` 같은 건 만들지 않는다.
+앵커가 여기 있는 이유는 앱 전체가 읽어서가 아니라 **화면을 떠나도 값이 살아야 하기 때문**이다.
+프로젝트를 옮겼다 돌아와도 보던 스냅샷이 유지돼야 한다. 아래 스펙 앵커 절.
 
 **화면 스코프 Context는 다르다.** `SpecPanelsContext`, `BearerTokenContext`,
 `CommentContext`는 전역이 아니라 그 화면 트리 안에서만 산다. 소유자가 갈리는 값
@@ -39,29 +42,149 @@ Context라는 형태가 `app/` 배치의 근거가 되지 않는다.
 
 ## queryKey
 
-| 대상             | 키                                   |
-| ---------------- | ------------------------------------ |
-| 내 프로젝트 목록 | `["projects"]`                       |
-| 프로젝트 진입    | `["projects", projectId]`            |
-| 멤버 목록        | `["projects", projectId, "members"]` |
-| 엔드포인트 상세  | `["endpoints", endpointId]`          |
-| 댓글 목록        | `["comments", endpointId]`           |
-| 내 알림          | `["notifications"]`                  |
-| 로그인 유저      | `["me"]`                             |
+| 대상             | 키                                  |
+| ---------------- | ----------------------------------- |
+| 내 프로젝트 목록 | `["projects"]`                      |
+| 프로젝트 메타    | `["project", projectId]`            |
+| 프로젝트 스펙    | `["spec", projectId, anchor]`       |
+| 멤버 목록        | `["project", projectId, "members"]` |
+| 댓글 목록        | `["comments", endpointId]`          |
+| 내 알림          | `["notifications"]`                 |
+| 로그인 유저      | `["me"]`                            |
 
 **id는 반드시 `number`다.** `useParams()`가 주는 것은 문자열이라 그대로 넣으면
-`["projects", "1"]`이 되어 `["projects", 1]`과 다른 캐시가 된다. 조회는 두 번 나가고
+`["project", "1"]`이 되어 `["project", 1]`과 다른 캐시가 된다. 조회는 두 번 나가고
 무효화는 한쪽만 잡는다. 에러가 안 나고 조용히 어긋나는 형태라 더 나쁘다.
+
+**목록과 단건의 접두사를 나눈다.** 목록은 `["projects"]`, 단건은 `["project", id]`다.
+접두사를 공유하면 `invalidateQueries({ queryKey: ["projects"] })` 한 번이 단건과 멤버까지
+끌고 온다. 목록은 대시보드 카드용이고 단건은 폴링 대상이라 성격이 갈리므로 끊는다.
+
+**엔드포인트 상세 키는 없다.** 상세는 요청이 아니라 `spec.operations.find()`다.
+아래 스펙 앵커 절.
 
 **`["notifications"]`에는 id가 붙지 않는다.** 수신자 본인 것만 오는 라우트라
 프로젝트나 엔드포인트로 갈리지 않는다. 계정이 바뀌면 `logout`의 `queryClient.clear()`가
 통째로 비운다.
 
 **여러 곳이 같은 데이터를 보면 같은 키를 부른다.** 프롭으로 내리지 않는다.
-`AppLayout`과 `ProjectSettingsPage`가 둘 다 `["projects", id]`를 부르지만 요청은 한 번이다.
+`AppLayout`과 `ProjectSettingsPage`가 둘 다 `["project", id]`를 부르지만 요청은 한 번이다.
 
-예외는 `SpecLayout`이다. 자식 라우트 둘이 같은 페이지 컴포넌트이고 둘 다 `ProjectView`를
-요구해서, 레이아웃이 조회하고 `<Outlet context>`로 내린다. 근거는 `03-frontend-layouts`.
+예외는 `SpecLayout`이다. 자식 라우트 둘이 같은 페이지 컴포넌트이고 둘 다 메타와 스펙을
+요구해서, 레이아웃이 조회하고 `<Outlet context>`로 `{ meta, spec, outdated }`를 내린다.
+근거는 `03-frontend-layouts`.
+
+---
+
+## 스펙 앵커 — `app/SpecAnchorContext.tsx`
+
+스펙 화면이 보는 것은 **한 스냅샷의 전부**다. 프로젝트 메타와 스펙을 두 채널로 나눠 받되
+스펙 쪽은 통째로 받고 쪼개지 않는다.
+
+```tsx
+["project", id][("spec", id, anchor)]; // 메타. 30초 폴링. 배너 판정의 유일한 입력 // 그 스냅샷의 info 메타, components, 전체 operation
+```
+
+**앵커는 프로젝트별 `snapshotId` 맵이다.**
+
+```tsx
+type SpecAnchorValue = {
+  anchors: Record<number, number>; // projectId → snapshotId
+  setAnchor: (projectId: number, snapshotId: number) => void;
+  clearAnchors: () => void;
+};
+```
+
+`getAnchor(projectId)` 헬퍼를 두지 않는다. 소비처가 `anchors[id]`로 직접 읽어야
+`number | undefined`가 타입에 드러나고, "앵커가 없으면 스펙 쿼리를 막는다"는 판단을
+빠뜨릴 수 없다.
+
+### 왜 키에 넣는가
+
+앵커가 쿼리 키에 들어가므로 **`setAnchor` 하나가 곧 스펙 교체다.** 키가 바뀌면
+TanStack이 알아서 새로 받아온다. `invalidateQueries`나 `setQueryData`를 부를 일이 없고,
+따라서 무효화 순서가 어긋나 화면의 조각들이 서로 다른 버전을 보는 사고가
+구조적으로 일어나지 않는다.
+
+옛 구조에서는 사이드바 목록과 엔드포인트 상세를 따로 받았고, 그 둘의 버전을 맞추려는
+코드가 계속 늘어났다. **맞출 것 자체를 없앤 것**이 이 설계의 요지다.
+
+### 앵커 고정과 이동
+
+| 언제               | 무엇                                   |
+| ------------------ | -------------------------------------- |
+| 첫 진입            | 메타의 `latestSnapshotId`로 한 번 고정 |
+| 배너 새로고침      | `setAnchor(latest)`                    |
+| 오너가 스펙 커밋   | 커밋 응답의 `snapshotId`로 `setAnchor` |
+| 다른 프로젝트 왕복 | 건드리지 않는다. 보던 버전이 유지된다  |
+| 로그아웃           | `clearAnchors()`                       |
+
+**첫 고정은 프로젝트당 한 번이다.** 이미 값이 있으면 건드리지 않는다.
+
+```tsx
+useEffect(() => {
+  if (id !== null && metaQuery.data && anchors[id] === undefined) {
+    setAnchor(id, metaQuery.data.latestSnapshotId);
+  }
+}, [id, metaQuery.data, anchors, setAnchor]);
+```
+
+조건을 `anchors[id] === undefined`가 아닌 다른 것으로 쓰면 30초 폴링이 돌 때마다
+앵커가 최신으로 끌려가 **사용자가 새로고침을 누르지 않았는데 화면이 조용히 바뀐다.**
+배너는 영영 뜨지 않는다. 이 조건 하나가 설계 전체를 지탱한다.
+
+**오너가 커밋할 때 앵커를 당기는 이유**는 자기가 방금 올린 변경에 배너가 뜨는 것을
+막기 위해서다. 커밋 응답이 새 `snapshotId`를 주므로 폴링을 기다릴 필요가 없다.
+
+**`clearAnchors()`는 `UserMenu`가 `logout()` 직전에 부른다.** `AuthContext`가
+`SpecAnchorProvider`의 조상이라 `logout` 안에서는 부를 수 없다. 목적은 다음 계정이
+앞사람의 버전을 가리키지 않게 하는 것이고, `queryClient.clear()`와 같은 시점이다.
+
+### `staleTime: Infinity`가 필수다
+
+`SpecSnapshot`은 append only라 **같은 키의 내용은 절대 바뀌지 않는다.** 전역 30초를
+그대로 두면 마운트마다 같은 응답을 다시 받는다. 스펙 응답은 압축 후에도 수십 KB 이상이라
+낭비 크기가 작지 않다.
+
+```tsx
+const specQuery = useQuery({
+  queryKey: ["spec", id, anchor],
+  queryFn: () => getSpec(id!, anchor),
+  enabled: id !== null && anchor !== undefined,
+  staleTime: Infinity,
+  gcTime: 30 * 60_000,
+});
+```
+
+`enabled`에 `anchor !== undefined`가 필요하다. 첫 진입에는 메타를 받아야 앵커가 정해지므로
+메타 → 앵커 → 스펙의 직렬 왕복이 한 번 생긴다. 이 왕복을 없애려고 앵커 없이 최신을
+요청하면 키가 버전을 담지 못해 위의 조용한 교체 위험이 되살아난다. 왕복을 받아들인다.
+
+### 배너
+
+```tsx
+const outdated = meta && spec && meta.latestSnapshotId > spec.snapshotId;
+const showBanner = outdated && meta.latestSnapshotId !== dismissed;
+const refresh = () => setAnchor(id, meta.latestSnapshotId);
+```
+
+- **`>`로 비교한다.** `!==`로 하면 커밋 직후 앵커가 먼저 올라간 오너에게, 메타 폴링이
+  따라오기 전까지 배너가 깜빡인다. 두 방향의 의미가 다르다는 판단은 `06-spec-detail-plan` 11-9.
+- **판정 입력은 메타 폴링 하나다.** 엔드포인트를 클릭해야 알 수 있던 옛 구조와 달리
+  개요 화면에서도 뜬다(FR-10.6).
+- **`dismissed`는 레이아웃이 갖는다.** `/projects/:id`와 `/projects/:id/endpoints/:id`는
+  다른 라우트라 페이지에 두면 이동할 때마다 리마운트되어 닫은 배너가 되살아난다.
+- **새로고침은 앵커 이동 하나다.** 페이지 리로드가 아니므로 Bearer 토큰(`useState`)과
+  패널 폭이 살아남는다.
+
+### 배너 구간에는 댓글 이동을 막는다
+
+앵커 기준 후보 목록에는 최신에서 이미 삭제된 엔드포인트가 섞여 있을 수 있는데,
+어느 것인지는 최신 스펙을 받아야 알 수 있다. 개별 제외가 불가능하므로 이동 자체를
+막는다(FR-12.3). 트리거를 `disabled`로 만들지 않고 팝오버 안에 안내를 그린다 —
+막힌 버튼에는 이유를 띄울 자리가 없다.
+
+멘션은 막지 않는다. 멘션은 링크일 뿐이고 FR-11.2가 삭제된 엔드포인트 열람을 보장한다.
 
 ---
 
@@ -119,10 +242,12 @@ if (isPending) return <LoadingState />;
 
 ## 폴링은 전역에 두지 않는다
 
-`refetchInterval`은 필요한 쿼리에만 개별로 건다. 전역에 두면 스펙, 엔드포인트,
-댓글까지 같이 돌아 시연 중 화면이 흔들린다 — `refetchOnWindowFocus`를 끈 것과 같은 이유다.
+`refetchInterval`은 필요한 쿼리에만 개별로 건다. 전역에 두면 스펙과 댓글까지 같이 돌아
+시연 중 화면이 흔들린다 — `refetchOnWindowFocus`를 끈 것과 같은 이유다.
 
-현재 거는 곳은 **알림 하나**다.
+현재 거는 곳은 **알림과 프로젝트 메타 둘**이다.
+
+### 알림 — `UserMenu`
 
 ```tsx
 refetchInterval: open ? false : 10_000;
@@ -135,6 +260,20 @@ refetchInterval: open ? false : 10_000;
 - **10초인 이유**는 팀원이 멘션한 뒤 점이 뜨기까지의 시간이다. WebSocket이 스코프 밖이라
   협업 느낌을 내는 유일한 수단이고, 알림 응답은 작아 부담이 없다.
 - `refetchIntervalInBackground`는 기본값(`false`)이라 탭이 뒤에 있으면 아예 멈춘다.
+
+### 프로젝트 메타 — `SpecLayout`
+
+```tsx
+refetchInterval: 30_000;
+```
+
+스펙 갱신 배너의 유일한 입력이다(FR-10.6). 응답이 가벼워 폴링을 감당한다 —
+`ProjectMeta`를 스펙 내용과 분리한 이유가 이것이다.
+
+**`SpecLayout`에서만 켠다.** `["project", id]`는 `AppLayout`과 `ProjectSettingsPage`도
+쓰지만 그 화면들에는 배너가 없어 최신 스냅샷을 계속 물어볼 이유가 없다.
+`refetchInterval`은 쿼리 키가 아니라 **옵저버 단위**로 적용되므로 화면마다 달라도
+충돌하지 않는다.
 
 ---
 
@@ -197,25 +336,26 @@ onSuccess: () => {
 
 ### `exact`를 언제 쓰나
 
-`invalidateQueries`는 **접두 매칭**이다. `["projects", 1]`로 무효화하면
-`["projects", 1, "members"]`까지 딸려온다.
+`invalidateQueries`는 **접두 매칭**이다. `["project", 1]`로 무효화하면
+`["project", 1, "members"]`까지 딸려온다.
 
 - 하위까지 같이 갱신돼야 하면 그대로 둔다.
 - 무관한 하위가 붙어 있으면 `exact: true`로 끊는다.
 
-스펙 커밋이 그 예다. 엔드포인트 목록과 `snapshotId`, 목록 카드의 title, 그리고 모든
-엔드포인트의 `operationJson`이 갈리지만 **멤버십은 무관하다.**
+스펙 커밋이 그 예다. 목록 카드의 title과 version, 메타의 `latestSnapshotId`가 갈리지만
+**멤버십은 무관하다.**
 
 ```tsx
+setAnchor(projectId, result.snapshotId);
 queryClient.invalidateQueries({ queryKey: ["projects"], exact: true });
 queryClient.invalidateQueries({
-  queryKey: ["projects", projectId],
+  queryKey: ["project", projectId],
   exact: true,
 });
-queryClient.invalidateQueries({ queryKey: ["endpoints"] });
 ```
 
-`["endpoints"]`에 `exact`가 없는 것은 의도다. 커밋은 모든 엔드포인트에 영향을 준다.
+**`["spec", ...]`은 무효화하지 않는다.** 앵커가 새 숫자로 바뀌면 키 자체가 달라져
+자동으로 새로 받는다. 앵커를 키에 넣은 이득이 드러나는 자리다.
 
 `["notifications"]`는 단일 키라 `exact`가 필요 없다. 하위가 없다.
 
@@ -267,10 +407,11 @@ const isLoading = Boolean(token) && isPending;
 **함수는 fetch만 한다.** React를 모르고 훅을 쓰지 않는다. `useQuery`는 화면이 부른다.
 
 ```tsx
-// GET  /api/endpoints/:id
-// →  EndpointDetail  (operationJson + 비교용 snapshotId)
-export function getEndpointDetail(endpointId: number) {
-  return api.get<EndpointDetail>(`/endpoints/${endpointId}`);
+// GET  /api/projects/:id/spec?snapshotId=N
+// →  Spec  (그 스냅샷의 info 메타, components, 전체 operation)
+export function getSpec(projectId: number, snapshotId?: number) {
+  const query = snapshotId === undefined ? "" : `?snapshotId=${snapshotId}`;
+  return api.get<Spec>(`/projects/${projectId}/spec${query}`);
 }
 ```
 
@@ -282,8 +423,10 @@ export function getEndpointDetail(endpointId: number) {
 
 ### `client.ts`
 
-- **경로는 항상 상대경로 `/api`다.** 배포는 NestJS 한 대가 프론트 정적 파일까지 서빙해
-  오리진이 같고, 개발에서는 Vite 프록시가 넘긴다. 환경변수 분기가 없다.
+- **경로는 항상 상대경로 `/api`다.** 프론트와 백엔드가 별도 App Service로 갈렸지만
+  프론트 앞단의 Express가 `/api`를 백엔드로 프록시하고, 개발에서는 Vite 프록시가
+  같은 일을 한다. 브라우저가 보는 오리진은 어느 쪽이든 하나라 환경변수 분기가 없다
+  (`10-deploy-plan`).
 - **토큰은 요청할 때마다 읽는다.** 모듈 로드 시점에 읽으면 로그인 직후 갱신이 반영되지 않는다.
 - **에러는 `ApiError` 하나로 통일한다.** 백엔드가 `HttpException` 서브클래스만 던져
   실패 응답이 `{ statusCode, code?, message, error }`로 일정하다.

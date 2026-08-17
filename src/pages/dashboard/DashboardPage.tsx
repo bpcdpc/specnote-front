@@ -1,6 +1,6 @@
 import { FolderOpen, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState } from "./EmptyState";
 import { PageHeading } from "@/components/PageHeading";
 import { ProjectCard } from "./ProjectCard";
 import { NewProjectCard } from "./NewProjectCard";

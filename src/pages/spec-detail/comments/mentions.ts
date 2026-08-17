@@ -2,7 +2,7 @@ import type {
   UserRef,
   EndpointRef,
   PublicUser,
-  EndpointSummary,
+  SpecOperation,
 } from "@/lib/types";
 
 // 멘션 저장 형식 — @userId| / #endpointId|
@@ -83,7 +83,7 @@ export function endpointLabel(endpoint: {
 export function toStorage(
   text: string,
   members: PublicUser[],
-  endpoints: EndpointSummary[],
+  endpoints: SpecOperation[],
 ): string {
   let out = text;
 
@@ -107,7 +107,7 @@ export function toStorage(
 export function toDisplay(
   content: string,
   members: PublicUser[],
-  endpoints: EndpointSummary[],
+  endpoints: SpecOperation[],
 ): string {
   return content
     .replace(/@(\d+)\|/g, (raw, id: string) => {

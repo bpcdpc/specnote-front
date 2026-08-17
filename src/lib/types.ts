@@ -24,8 +24,7 @@ export type EndpointRef = {
 
 // ── projects ────────────────────────────────────────────
 
-// GET /api/projects (목록), PATCH /api/projects/:id 응답.
-// ProjectView.project 로도 온다.
+// GET /api/projects (목록) 응답. 대시보드에서 쓴다.
 // isDeleted 는 실질적으로 항상 false 다 — 서버가 삭제된 것을 목록에서 제외하고,
 // 직접 진입하면 MembershipGuard 가 404 를 낸다. 이 필드로 분기하지 않는다.
 export type ProjectSummary = {
@@ -38,27 +37,47 @@ export type ProjectSummary = {
   isDeleted: boolean;
 };
 
-// GET /api/projects/:id (진입), POST /api/projects (생성) 응답.
-// 사이드바 목록과 components 를 한 번에 준다.
-export type ProjectView = {
-  project: ProjectSummary;
+// GET /api/projects/:id (단건), POST /api/projects (생성), PATCH /api/projects/:id (수정) 응답.
+// 앵커가 있는 화면인 SpecDetail 은 이 응답을 그리지 않고, Spec 만 사용한다.
+// 30초 폴링 대상이라, 여기 실린 값을 스펙 화면에 그리면 앵커에 고정된 내용과 어긋난다.
+// title은, 스펙 버전과 상관이 있지만, 앵커가 없는 설정 페이지의 Breadcrumb에 프로젝트 제목이 필요해서 포함시킨다.
+export type ProjectMeta = {
+  id: number;
+  role: ROLE;
+  title: string;
   specJsonUrl: string;
   tryItBaseUrl: string | null;
-  components: unknown; // components JSON, 프론트가 캐싱·파싱
-  snapshotId: number; // 프론트 캐시 기준 스냅샷 id
-  endpoints: EndpointSummary[]; // 삭제 포함 전체 경량 목록
+  // 서버의 현재 최신 스냅샷. 배너 판정 전용 (FR-10.6).
+  latestSnapshotId: number;
 };
 
-// ProjectView.endpoints 의 원소. operationJson 을 뺀 사이드바용이다.
-// 여기의 isDeleted 는 프론트가 직접 쓴다 — 사이드바 토글, 멘션 후보 제외(FR-8.3),
-// 댓글 이동 대상 제외(FR-12.3). 프로젝트 쪽과 달리 실제로 true 가 온다.
-export type EndpointSummary = {
+// Spec.operations 의 원소. id 는 Endpoint.id - 댓글 앵커이자 라우팅 키.
+// 사이드바 목록과 상세가 같은 원소를 사용.
+export type SpecOperation = {
   id: number;
   path: string;
   method: string;
   summary: string | null;
   tags: string[];
+  // 삭제된 엔드포인트 보기 토글(FR-11.1), 댓글 이동 후보에서 제외(FR-12.3)
+  // 멘션 후보에서도 제외하는데, 이것은 프론트에서 정한 규칙이다.
   isDeleted: boolean;
+  // 삭제되지 않은 엔드포인트는 요청 스냅샷의 rawJson에서
+  // 삭제된 것 중 요청 스냅샷보다 먼저 있었던 엔드포인트는 디비의 endpoint 행에서 정보를 가져온다.
+  operationJson: unknown;
+};
+
+// GET /api/projects/:id/spec 응답.
+// SpecDetail 전체를 그리는 한 스냅샷 정보 전체
+export type Spec = {
+  // 이 응답이 나온 스냅샷 버전. ?snapshotId가 없거나, 최신 이상이면 최신이 온다.
+  snapshotId: number;
+  title: string;
+  version: string;
+  oasVersion: string;
+  description: string | null;
+  components: unknown; // rawJson의 components 부분. 프론트가 캐싱하고 렌더시에 $ref 해석
+  operations: SpecOperation[];
 };
 
 // POST /api/projects/:id/spec-commits 응답
@@ -87,27 +106,6 @@ export type Membership = {
   role: ROLE;
   isDeleted: boolean;
   createdAt: string;
-};
-
-// ── endpoints ───────────────────────────────────────────
-
-// GET /api/endpoints/:id 응답
-export type EndpointDetail = {
-  id: number;
-  path: string;
-  method: string;
-  operationId: string | null;
-  summary: string | null;
-  tags: string[];
-  operationJson: unknown; // operation JSON, 프론트가 파싱 (서버 pass-through)
-  isDeleted: boolean;
-  // 이 엔드포인트가 나온 스냅샷 아이디
-  // operationJson, operationId, summary, tags, isDeleted 의 정보 출처가 된다.
-  // id, path, method는 유니크 키라서 스냅샷 버전과 상관없다.
-  // ?snapshotId를 최신보다 큰 값으로 요청할 경우, 최신값이 온다.
-  snapshotId: number;
-  // 서버의 현재 최신 스냅샷. ProjectView.snapshotId 와 비교해 스펙 갱신을 감지한다(FR-10.6).
-  latestSnapshotId: number;
 };
 
 // ── comments ────────────────────────────────────────────

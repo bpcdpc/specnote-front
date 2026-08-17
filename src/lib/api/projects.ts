@@ -1,9 +1,10 @@
 import type {
   ProjectSummary,
-  ProjectView,
   SpecCommitResult,
   MemberView,
   Membership,
+  ProjectMeta,
+  Spec,
 } from "../types";
 import { api } from "./client";
 
@@ -16,30 +17,42 @@ export function getProjects() {
 }
 
 // GET  /api/projects/:id
-// →  ProjectView  (사이드바 목록 + components 를 한 번에)
-export function getProject(projectId: number) {
-  return api.get<ProjectView>(`/projects/${projectId}`);
+// →  ProjectMeta (id, role, title, spec url, try url, latest snapshot id)
+// SpecLayout이 30초 간격으로 폴링한다. 스펙 내용은 getSpec이 담당한다.
+export function getProjectMeta(projectId: number) {
+  return api.get<ProjectMeta>(`/projects/${projectId}`);
+}
+
+// GET /api/projects/:id/spec
+// →  Spec (그 스냅샷의 info 메타, components, operations)
+//
+// snapshotId를 생략하면 최신이 온다. 호출부(SpecLayout)은 항상 앵커를 넘긴다.
+// 앵커가 아직 없는 동안에는 쿼리를 막으므로 생략 경로를 타지 않는다.
+// 404 - 존재하지 않는 옛 스냅샷 id (남의 프로젝트의 스펙 포함, 리소스 은닉)
+export function getSpec(projectId: number, snapshotId?: number) {
+  const query = snapshotId === undefined ? "" : `?snapshotId=${snapshotId}`;
+  return api.get<Spec>(`/projects/${projectId}/spec${query}`);
 }
 
 // POST /api/projects
-// { specJsonUrl, tryItBaseUrl? }  →  ProjectView
+// { specJsonUrl, tryItBaseUrl? }  →  ProjectMeta
 // 400 에 code — INVALID_SPEC | UNSUPPORTED_VERSION | SPEC_LOAD_ERROR
 export function createProject(body: {
   specJsonUrl: string;
   tryItBaseUrl?: string;
 }) {
-  return api.post<ProjectView>("/projects", body);
+  return api.post<ProjectMeta>("/projects", body);
 }
 
 // [Owner]
 // PATCH /api/projects/:id
-// { tryItBaseUrl? }  →  ProjectSummary
+// { tryItBaseUrl? }  →  ProjectMeta
 // 나머지 메타는 스펙 재커밋으로만 갱신된다.
 export function updateProject(
   projectId: number,
   body: { tryItBaseUrl?: string | null },
 ) {
-  return api.patch<ProjectSummary>(`/projects/${projectId}`, body);
+  return api.patch<ProjectMeta>(`/projects/${projectId}`, body);
 }
 
 // [Owner]

@@ -31,8 +31,8 @@ export function TryItBaseUrlField({
     mutationFn: () =>
       updateProject(projectId, { tryItBaseUrl: url.trim() || null }),
     onSuccess: () => {
-      // 진입 응답의 tryItBaseUrl 이 바뀐다. 목록의 메타는 그대로다.
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      // meta 의 tryItBaseUrl 이 바뀐다. 스펙과 무관하므로 앵커는 건드리지 않는다.
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       toast.add({ title: "저장했습니다", type: "success" });
     },
     onError: (e) => {
@@ -61,6 +61,7 @@ export function TryItBaseUrlField({
               variant="outline"
               className="shrink-0"
               onClick={() => mutate()}
+              disabled={isPending}
             >
               {isPending ? "저장 중…" : "저장"}
             </Button>

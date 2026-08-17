@@ -6,7 +6,7 @@ import type { Crumb } from "@/components/Breadcrumb";
 import { UserMenu } from "@/components/UserMenu";
 import { parseId } from "@/lib/routeParams";
 import { useQuery } from "@tanstack/react-query";
-import { getProject } from "@/lib/api/projects";
+import { getProjectMeta } from "@/lib/api/projects";
 
 type AppLayoutProps = {
   // 헤더 좌측 경로를 정한다.
@@ -24,10 +24,11 @@ export function AppLayout({ variant }: AppLayoutProps) {
   const { projectId } = useParams();
   const id = parseId(projectId);
 
-  const { data: projectView } = useQuery({
-    queryKey: ["projects", id],
-    queryFn: () => getProject(id!),
+  const { data: meta } = useQuery({
+    queryKey: ["project", id],
+    queryFn: () => getProjectMeta(id!),
     enabled: id !== null,
+    // 30초 폴링은 켜지 않는다. 이 쿼리가 필요한 곳은 설정 화면뿐이고, 필요한 것은 프로젝트 이름 뿐이다.
   });
 
   let items: Crumb[];
@@ -38,9 +39,7 @@ export function AppLayout({ variant }: AppLayoutProps) {
   } else {
     items = [
       { label: "Dashboard", to: "/" },
-      ...(projectView
-        ? [{ label: projectView.project.title, to: `/projects/${id}` }]
-        : []),
+      ...(meta ? [{ label: meta.title, to: `/projects/${id}` }] : []),
       { label: "설정" },
     ];
   }

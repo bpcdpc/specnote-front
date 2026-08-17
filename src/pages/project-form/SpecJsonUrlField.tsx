@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/toast";
 import { commitSpec } from "@/lib/api/projects";
 import type { EndpointDiff } from "@/lib/types";
 import { specErrorMessage } from "./SpecError";
+import { useSpecAnchor } from "@/app/SpecAnchorContext";
 
 type SpecJsonUrlFieldProps = {
   projectId: number;
@@ -35,6 +36,8 @@ export function SpecJsonUrlField({
   projectId,
   initialUrl,
 }: SpecJsonUrlFieldProps) {
+  const { setAnchor } = useSpecAnchor();
+
   const queryClient = useQueryClient();
 
   const [url, setUrl] = useState(initialUrl);
@@ -43,17 +46,18 @@ export function SpecJsonUrlField({
   const { mutate, isPending } = useMutation({
     mutationFn: () => commitSpec(projectId, { specJsonUrl: url.trim() }),
     onSuccess: (result) => {
+      // 커밋한 본인의 앵커를 새 스냅샷으로 당긴다.
+      // 이게 없으면 스펙 화면으로 돌아갔을 때, 자기가 방금 올린 변경에 대해서 배너가 뜬다.
+      setAnchor(projectId, result.snapshotId);
       // 목록 카드의 title, version 도 스펙에서 다시 뽑힌다.
       queryClient.invalidateQueries({ queryKey: ["projects"], exact: true });
-      // 엔드포인트 목록과 snapshotId 가 통째로 바뀐다.
+      // latestSnapshotId가 바뀐다. 폴링을 기다리지 않고 지금 맞춘다.
       queryClient.invalidateQueries({
-        queryKey: ["projects", projectId],
+        queryKey: ["project", projectId],
         exact: true,
       });
-      // operationJson 이 전부 갈린다. 상세 캐시를 안 버리면 설정에서 돌아왔을 때
-      // staleTime 동안 옛 스펙이 그대로 보이고, 배너로도 안 잡힌다
-      // (detail < project 방향이라 배너 조건에 안 걸린다).
-      queryClient.invalidateQueries({ queryKey: ["endpoints"] });
+      // ["spec", ...] 은 무효화하지 않는다. 앵커가 새 숫자로 바뀌면 키 자체가 달라져
+      // 자동으로 새로 받기 때문.
       toast.add({
         title: "스펙을 업데이트했습니다",
         description: describeDiff(result.diff),

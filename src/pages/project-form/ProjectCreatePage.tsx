@@ -11,8 +11,8 @@ import { specErrorMessage } from "./SpecError";
 // ProjectCreatePage — 프로젝트 생성
 //
 // 스펙 JSON URL 하나만 입력받아 생성한다.
-//   title/description/version/oasVersion 은 이 URL 의 스펙을 서버가 파싱해 채운다. (FR-1.9 — 사용자 직접 입력 없음)
-// base URL/멤버는 생성 후 설정 화면에서 추가.
+// title/description/version/oasVersion 은 이 URL 의 스펙을 서버가 파싱해 채운다. (FR-1.9)
+// base URL, 멤버는 생성 후 설정 화면에서 추가.
 //
 // 컨테이너는 대시보드 목록과 동일 — 화면 간 좌측 기준선과 여백을 맞춘다.
 export function ProjectCreatePage() {
@@ -24,9 +24,9 @@ export function ProjectCreatePage() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => createProject({ specJsonUrl: url.trim() }),
-    onSuccess: (projectView) => {
+    onSuccess: (meta) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      navigate(`/projects/${projectView.project.id}`, { replace: true });
+      navigate(`/projects/${meta.id}`, { replace: true });
     },
     onError: (e) => {
       setError(specErrorMessage(e, "프로젝트를 만들지 못했습니다."));

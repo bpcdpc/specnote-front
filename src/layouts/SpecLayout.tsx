@@ -1,6 +1,6 @@
 import { Link, Outlet, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { PanelLeft, PanelRight, Settings } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -11,7 +11,6 @@ import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 import { cn } from "@/lib/utils";
 import { parseId } from "@/lib/routeParams";
-import { getProject } from "@/lib/api/projects";
 import {
   SpecPanelsProvider,
   useSpecPanels,
@@ -19,10 +18,24 @@ import {
 import { HEADER_RIGHT_WIDTH } from "@/pages/spec-detail/panelMetrics";
 import { BearerTokenProvider } from "@/pages/spec-detail/BearerTokenContext";
 import { BearerTokenInput } from "@/pages/spec-detail/BearerTokenInput";
-import type { ProjectView } from "@/lib/types";
+import type { ProjectMeta, Spec } from "@/lib/types";
+import { useSpecAnchor } from "@/app/SpecAnchorContext";
+import { getProjectMeta, getSpec } from "@/lib/api/projects";
+import { SpecUpdateBanner } from "@/pages/spec-detail/SpecUpdateBanner";
 
 // 자식 라우트가 받는 값. 소비처가 SpecDetailPage 하나뿐이라 파일을 따로 만들지 않는다.
-export type SpecOutletContext = { projectView: ProjectView };
+//
+// meta와 spec을 나눠서 내린다. 어느 값이 앵커를 따르고, 어느 값이 최신인지 확실히 구분하기 위해서다.
+// 예를들면, tryItBaseUrl은 최신, components 는 앵커 시점이다.
+//
+// outdated는 두 곳이 쓴다.
+// 1 - 앵커에 없는 엔드포인트의 문구 분기(NotInSnapshot vs. NotFound)와
+// 2 - 댓글 이동 차단
+export type SpecOutletContext = {
+  meta: ProjectMeta;
+  spec: Spec;
+  outdated: boolean;
+};
 
 const LINK_BUTTON_CLASS_NAMES = cn(
   "text-fg-2 hover:bg-hover-icon hover:text-fg-1",
@@ -36,36 +49,73 @@ function SpecLayoutInner() {
   const id = parseId(projectId);
   const { isWide, sidebarOpen, commentsOpen, toggleSidebar, toggleComments } =
     useSpecPanels();
+  const { anchors, setAnchor } = useSpecAnchor();
 
-  // 프로젝트 조회를 레이아웃이 갖는다.
-  //
-  // 자식 라우트 둘(index, endpoints/:endpointId)이 같은 SpecDetailPage 이고
-  // 둘 다 projectView 를 요구한다. 페이지에 두면 로딩·에러 분기가 두 벌 생기고,
-  // useSpecCache 가 components 없이 한 번 만들어졌다 버려진다.
-  //
-  // 헤더는 어느 상태에서도 그린다. 프로젝트를 못 불러왔다고 전체 화면 에러로 덮으면
-  // 대시보드로 돌아갈 길이 없어진다 — 없는 endpointId 를 404 페이지로 안 보내는 것과 같은 판단.
-  const {
-    data: projectView,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["projects", id],
-    // enabled 가 id !== null 을 보장한다.
-    queryFn: () => getProject(id!),
+  // 메타 - 스펙 버전과 무관. 30초 폴링에서 오는 latestSnapshotId 로 배너를 판정한다.
+  // 폴링은 여기에서만 켠다. 설정화면에서 같은 키를 쓰지만 30초 간격으로 폴링할 필요는 없다.
+  // refetchInterval은 옵저버 단위라 화면마다 달라도 충돌하지 않는다.
+  const metaQuery = useQuery({
+    queryKey: ["project", id],
+    queryFn: () => getProjectMeta(id!),
     enabled: id !== null,
+    refetchInterval: 30_000,
   });
 
-  const isOwner = projectView?.project.role === "OWNER";
+  const anchor = id !== null ? anchors[id] : undefined;
 
-  // 로딩·에러 중에는 프로젝트 항목을 아예 뺀다. "프로젝트" 같은 대체 텍스트를 넣으면
+  // 스펙 - 앵커가 키에 들어간다. 앵커를 바꾸는 것이 곧 스펙 교체이다.
+  // staleTime: Infinity 필수.
+  // SpecSnapshot이 append only라 같은 키의 내용은 절대 안 바뀌는데,
+  // 전역 staleTime이 30초로 되어 있어 설정하지 않으면 계속 같은 내용의 데이터를 수백 KB씩
+  // 다시 받는다.
+  const specQuery = useQuery({
+    queryKey: ["spec", id, anchor],
+    queryFn: () => getSpec(id!, anchor),
+    enabled: id !== null && anchor !== undefined,
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+  });
+
+  // 첫 진입시 앵커 고정.
+  // 프로젝트 당 한번씩이고, 이미 있으면 건드리지 않는다.
+  // 다른 프로젝트를 보고 왔을 때에도 버전이 유지되어야 한다.
+  useEffect(() => {
+    if (id !== null && metaQuery.data && anchors[id] === undefined) {
+      setAnchor(id, metaQuery.data.latestSnapshotId);
+    }
+  }, [id, metaQuery.data, anchors, setAnchor]);
+
+  const meta = metaQuery.data;
+  const spec = specQuery.data;
+
+  // 배너 판정. > 로 비교한다. !== 로 비교하면 앵커를 먼저 당긴 owner에게
+  // meta 폴링이 따라오기 전까지 배너가 깜박인다.
+  const outdated =
+    meta !== undefined &&
+    spec !== undefined &&
+    meta.latestSnapshotId > spec.snapshotId;
+
+  // 닫은 스냅샷을 기억한다.
+  // 이 state를 페이지가 아니라 레이아웃이 갖는다.
+  // /projects/1 과 /projects/1/endpoints/2 는 다른 라우트라 페이지에 두면
+  // 엔드포인트를 이동할 때마다 리마운트되어 배너를 닫은 것을 기억할 수 없다.
+  const [dismissed, setDismissed] = useState<number | null>(null);
+  const showBanner = outdated && meta.latestSnapshotId !== dismissed;
+
+  // 배너 새로고침 = 앵커 이동. 키가 바뀌면 스펙 전체가 따라온다.
+  // invalidateQueries 를 부르지 않으므로 무표화 순서가 어긋날 여지가 없고,
+  // Bearer Token (useState) 도 살아남는다.
+  const refresh = () => {
+    if (id !== null && meta) setAnchor(id, meta.latestSnapshotId);
+  };
+
+  const isOwner = meta?.role === "OWNER";
+
+  // 로딩, 에러 중에는 프로젝트 항목을 아예 뺀다. "프로젝트" 같은 대체 텍스트를 넣으면
   // 로드 후 실제 이름으로 바뀌며 헤더가 흔들리고, 그 사이 틀린 정보를 보여주는 셈이다.
   const breadcrumbItems = [
     { label: "Dashboard", to: "/" },
-    ...(projectView
-      ? [{ label: projectView.project.title, to: `/projects/${id}` }]
-      : []),
+    ...(spec ? [{ label: spec.title, to: `/projects/${id}` }] : []),
   ];
 
   const headerLeft = (
@@ -119,20 +169,29 @@ function SpecLayoutInner() {
     </div>
   );
 
-  // 재시도 버튼은 달지 않는다. 404(없음·비멤버·삭제됨)는 다시 물어도 같은 답이고,
-  // 그 셋을 구분할 방법이 없다(리소스 은닉).
+  // 앵커가 아직 없으면 spec 쿼리가 enabled: false라 isPending 이 true로 남는다.
+  // 그 상태가 바로 로딩이므로 따로 다르지 않는다.
   let body: ReactNode;
   if (id === null) {
-    // /projects/abc — 요청 자체를 보내지 않는다. 백엔드는 400 을 내는데, 그 문구("유효하지 않은 id입니다")는 화면에 띄울 말이 아니다.
     body = <ErrorState error={null} fallback="프로젝트를 찾을 수 없습니다." />;
-  } else if (isPending) {
-    body = <LoadingState />;
-  } else if (isError) {
+  } else if (metaQuery.isError) {
     body = (
-      <ErrorState error={error} fallback="프로젝트를 불러오지 못했습니다." />
+      <ErrorState
+        error={metaQuery.error}
+        fallback="프로젝트를 불러오지 못했습니다."
+      />
     );
+  } else if (specQuery.isError) {
+    body = (
+      <ErrorState
+        error={specQuery.error}
+        fallback="스펙을 불러오지 못했습니다."
+      />
+    );
+  } else if (!meta || !spec) {
+    body = <LoadingState />;
   } else {
-    body = <Outlet context={{ projectView }} />;
+    body = <Outlet context={{ meta, spec, outdated }} />;
   }
 
   return (
@@ -142,10 +201,16 @@ function SpecLayoutInner() {
         right={headerRight}
         wide={!isWide ? <BearerTokenInput className="w-full" /> : undefined}
       />
-      {/* 세로 스택을 한 겹 더 둔다. 상태에 따라 내용이 갈려도
-          SpecColumns(min-h-0 flex-1)와 배너(shrink-0)의 배치 전제가 그대로 성립한다.
-          overflow 는 주지 않는다 — 스크롤 주체는 각 컬럼이다. */}
-      <div className="flex min-h-0 flex-1 flex-col">{body}</div>
+
+      <div className="flex min-h-0 flex-1 flex-col">
+        {showBanner && (
+          <SpecUpdateBanner
+            onRefresh={refresh}
+            onDismiss={() => setDismissed(meta.latestSnapshotId)}
+          />
+        )}
+        {body}
+      </div>
       <Footer align="left" />
     </div>
   );

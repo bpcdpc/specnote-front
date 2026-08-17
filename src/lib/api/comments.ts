@@ -28,7 +28,7 @@ function toCommentBody(content: string, mentions: MentionIds): CommentBody {
 // 삭제된 댓글도 자리를 지킨다 — content 는 서버가 마스킹한다(FR-5.3).
 // 단건 조회 API 와 페이지네이션은 없다. 전량 로드로 해결한다.
 // 404 — 없는 엔드포인트, 또는 남의 프로젝트 것(리소스 은닉).
-//       getEndpointDetail 과 같아서 호출부는 고정 문구를 쓴다.
+//       두 경우를 구분할 수 없으므로 호출부는 고정 문구를 쓴다.
 export function getComments(endpointId: number) {
   return api.get<CommentTree[]>(`/endpoints/${endpointId}/comments`);
 }

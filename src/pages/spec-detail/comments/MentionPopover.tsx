@@ -2,11 +2,11 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { MethodBadge, FallbackBadge } from "@/components/MethodBadge";
 import { isHttpMethod } from "@/lib/constants";
-import type { EndpointSummary, PublicUser } from "@/lib/types";
+import type { SpecOperation, PublicUser } from "@/lib/types";
 
 export type MentionCandidate =
   | { kind: "member"; member: PublicUser }
-  | { kind: "endpoint"; endpoint: EndpointSummary };
+  | { kind: "endpoint"; endpoint: SpecOperation };
 
 type MentionPopoverProps = {
   candidates: MentionCandidate[];
@@ -125,7 +125,7 @@ export function findCandidates(
   trigger: "@" | "#",
   query: string,
   members: PublicUser[],
-  endpoints: EndpointSummary[],
+  endpoints: SpecOperation[],
 ): MentionCandidate[] {
   const keyword = query.trim().toLowerCase();
 
