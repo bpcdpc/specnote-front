@@ -1,7 +1,6 @@
-import { useState } from "react";
 import type { ReactNode } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { SpecColumns } from "./SpecColumns";
 import { EndpointSidebar } from "./EndpointSidebar";
 import { MethodBadge, FallbackBadge } from "@/components/MethodBadge";
@@ -9,151 +8,78 @@ import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
 import { isHttpMethod } from "@/lib/constants";
 import { parseId } from "@/lib/routeParams";
-import { ApiError } from "@/lib/api/client";
-import { getEndpointDetail } from "@/lib/api/endpoints";
 import { ProjectOverview } from "./ProjectOverview";
 import { cn } from "@/lib/utils";
 import { useSpecCache } from "./useSpecCache";
 import { EndpointDetail } from "./EndpointDetail";
-import { SpecUpdateBanner } from "./SpecUpdateBanner";
 import { CommentPanel } from "./comments/CommentPanel";
 import type { SpecOutletContext } from "@/layouts/SpecLayout";
 import type { SpecCache } from "./useSpecCache";
-import type {
-  ProjectView,
-  EndpointDetail as EndpointDetailType,
-} from "@/lib/types";
 import { useAuth } from "@/app/AuthContext";
 import { getMembers } from "@/lib/api/projects";
-import type { EndpointSummary } from "@/lib/types";
+import type { ProjectMeta, Spec, SpecOperation } from "@/lib/types";
 
 // SpecDetailPage — 3컬럼 본문
 //
 // 선택 상태의 소유자는 URL 이다. 컴포넌트 state 로 들지 않는다 —
 // 새로고침과 뒤로가기가 살아야 하고, 13단계 딥링크가 같은 경로를 그대로 쓴다.
 //
-// projectView 는 SpecLayout 이 이미 확보해 내려준다. 여기서 다시 조회하지 않는다.
+// meta 와 spec은 SpecLayout 이 확보해 내려준다.
+// 엔드포인트 선택은 내려받은 spec.operations 에서 찾는다. 네트워크 요청이 없다.
+// 목록과 상세가 같은 배열에서 나오므로 둘의 버전이 구조적으로 어긋날 수 없다.
 export function SpecDetailPage() {
-  const { projectId, endpointId: endpointIdParam } = useParams();
-  const { projectView } = useOutletContext<SpecOutletContext>();
-  const cache = useSpecCache(projectView.components);
+  const { endpointId: endpointIdParam } = useParams();
+  const { meta, spec, outdated } = useOutletContext<SpecOutletContext>();
+  const cache = useSpecCache(spec.components);
 
   // 선택 여부와 유효성은 다르다.
   //   /projects/1                → 미선택. 개요를 그린다.
-  //   /projects/1/endpoints/abc  → 선택했지만 잘못된 값. 요청을 안 보낸다.
+  //   /projects/1/endpoints/abc  → 선택했지만 잘못된 값.
   const hasSelection = endpointIdParam !== undefined;
   const endpointId = parseId(endpointIdParam);
 
-  const detailQuery = useQuery({
-    // 스냅샷 별로 캐싱하도록 키에 스냅샷 아이디를 추가한다.
-    queryKey: ["endpoints", endpointId, projectView.snapshotId],
-    // enabled 가 endpointId !== null 을 보장한다.
-    queryFn: () => getEndpointDetail(endpointId!, projectView.snapshotId),
-    enabled: endpointId !== null,
-  });
+  const operation =
+    endpointId !== null
+      ? spec.operations.find((o) => o.id === endpointId)
+      : undefined;
 
-  const detail = detailQuery.data;
-  const isOwner = projectView.project.role === "OWNER";
-
-  // 배너를 닫은 스냅샷을 기억한다. 그보다 더 새 스냅샷이 오면 다시 뜬다.
-  const [dismissed, setDismissed] = useState<number | null>(null);
-
-  // 서버의 최신이 내가 보고있는 화면보다 높으면, 그 사이에 스펙이 커밋된 것이다.
-  // 엔드포인트를 선택하지 않은 상태에서는 스펙이 커밋된 것을 알 수 없다.
-  // 특정 엔드포인트로 진입해야지만 알 수 있다.
-  // 이것은 사용자 입장에서는 어색한 흐름이고,
-  // 다음 단계에서 프로젝트 개요에서도 배너를 띄울 수 있도록 변경할 예정이다.
-  const newSnapshotId =
-    detail && detail.latestSnapshotId > projectView.snapshotId
-      ? detail.latestSnapshotId
-      : null;
-  const showBanner = newSnapshotId !== null && newSnapshotId !== dismissed;
-
-  // 리로드는 Bearer 토큰(useState)도 날리기 때문에, invalidateQuery를 써서 토큰을 날리지 않는다.
-  const queryClient = useQueryClient();
-
-  // "endpoints" 쿼리키는 무효화하지 않고, projects만 무효화한다.
-  // 새 snapshotId가 오면 쿼리키가 바뀌어 자동으로 새 버전으로 캐싱된다.
-  const refresh = () => {
-    queryClient.invalidateQueries({
-      queryKey: ["projects", projectView.project.id],
-      exact: true,
-    });
-  };
-
-  // 중앙 컬럼 6상태. SpecLayout 과 같은 분기 형태를 쓴다.
+  // 중앙 컬럼 5상태.
   let detailNode: ReactNode;
   if (!hasSelection) {
-    detailNode = (
-      <ProjectOverview projectView={projectView} projectId={projectId} />
-    );
+    detailNode = <ProjectOverview meta={meta} spec={spec} />;
   } else if (endpointId === null) {
     detailNode = <NotFoundDetail />;
-  } else if (detailQuery.isPending) {
-    detailNode = <LoadingState />;
-  } else if (detailQuery.isError) {
-    // NOT_IN_SNAPSHOT은 code 로 구분된다.
-    // 나머지 404 두 갈래(엔드포인트 없음 / 남의 프로젝트)는 구분할 수 없고
-    // 후자의 문구("멤버쉽이…")는 이 화면에서 뜬금없으므로 고정 문구를 쓴다.
-    if (isNotInSnapshot(detailQuery.error)) {
-      detailNode = <NotInSnapshotDetail />;
-    } else if (isNotFound(detailQuery.error)) {
-      detailNode = <NotFoundDetail />;
-    } else {
-      detailNode = (
-        <ErrorState
-          error={detailQuery.error}
-          fallback="엔드포인트를 불러오지 못했습니다."
-          onRetry={() => detailQuery.refetch()}
-        />
-      );
-    }
+  } else if (operation === undefined) {
+    detailNode = outdated ? <NotInSnapshotDetail /> : <NotFoundDetail />;
   } else {
-    detailNode = renderDetail(detailQuery.data, cache, projectView);
+    detailNode = renderDetail(operation, spec, meta, cache);
   }
 
   return (
-    <>
-      {showBanner && (
-        <SpecUpdateBanner
-          onRefresh={refresh}
-          onDismiss={() => setDismissed(newSnapshotId)}
+    <SpecColumns
+      sidebar={<EndpointSidebar endpoints={spec.operations} />}
+      detail={detailNode}
+      comments={
+        <CommentSlot
+          projectId={meta.id}
+          // 앵커 스펙에 없는 엔드포인트는 미선택과 같게 다룬다.
+          // 그냥 endpointId={endpointId} 로 넘기면, 존재하지 않는 엔드포인트일 경우에
+          // 댓글쿼리만 404로 처리되어 중앙은 "찾을 수 없음"인데 댓글 패널은 재시도 가능한 실패인 것처럼 보인다.
+          endpointId={operation ? endpointId : null}
+          isOwner={meta.role === "OWNER"}
+          outdated={outdated}
+          // 삭제된 것도 함께 넘긴다. 이미 달린 멘션은 대상이 삭제돼도 유지되므로 (FR-7.4)
+          // 렌더가 삭제된 엔드포인트도 찾아 취소선을 그을 수 있어야 한다.
+          // 새로 멘션하거나 옮길 수 있는 대상은 CommentProvider 가 좁힌다.
+          endpoints={spec.operations}
         />
-      )}
-
-      <SpecColumns
-        sidebar={<EndpointSidebar endpoints={projectView.endpoints} />}
-        detail={detailNode}
-        comments={
-          <CommentSlot
-            projectId={projectView.project.id}
-            endpointId={endpointId}
-            isOwner={isOwner}
-            // 삭제된 것도 함께 넘긴다. 이미 달린 멘션은 대상이 삭제돼도 유지되므로 (FR-7.4)
-            // 렌더가 삭제된 엔드포인트도 찾아 취소선을 그을 수 있어야 한다.
-            // 새로 멘션하거나 옮길 수 있는 대상은 CommentProvider 가 좁힌다.
-            endpoints={projectView.endpoints}
-          />
-        }
-      />
-    </>
+      }
+    />
   );
 }
 
-function isNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 404;
-}
-
-// 앵커 시점에 스냅샷에 없던 엔드포인트
-// 커밋 이후 딥링크를 타면 접근할 수 있다.
-// 일반 not found 와 달리, 실제 존재하지만 배너 새로고침 하기 전에는 안 보이는 상태임을 나타내기 위해
-// 별도로 처리한다.
-function isNotInSnapshot(error: unknown): boolean {
-  return error instanceof ApiError && error.code === "NOT_IN_SNAPSHOT";
-}
-
 // 없는 엔드포인트를 404 페이지로 보내지 않는다.
-// 사이드바가 사라져 다른 엔드포인트로 갈 방법이 없어진다.
+// 사이드바나 헤더가 사라지면 어색하다.
 function NotFoundDetail() {
   return (
     <p className="pt-16 text-center text-sm text-fg-3">
@@ -162,8 +88,8 @@ function NotFoundDetail() {
   );
 }
 
-// 최신 스펙에만 있고, 현재 사용자가 보고있던 스펙에는 없는 엔드포인트.
-// 일반 404와 다른 메세지가 필요하다.
+// 현재 앵커 스펙에는 없지만 최신에는 있을 수 있는 엔드포인트.
+// 배너가 떠 있는 동안 알림 딥링크로 들어오는 경우이다.
 function NotInSnapshotDetail() {
   return (
     <p className="pt-16 text-center text-sm text-fg-3">
@@ -173,49 +99,55 @@ function NotInSnapshotDetail() {
 }
 
 function renderDetail(
-  detail: EndpointDetailType,
+  operation: SpecOperation,
+  spec: Spec,
+  meta: ProjectMeta,
   cache: SpecCache,
-  projectView: ProjectView,
 ) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4 pt-1">
-        {isHttpMethod(detail.method) ? (
+        {isHttpMethod(operation.method) ? (
           <MethodBadge
-            method={detail.method}
-            className="min-w-[72px] px-2.5 py-1 text-sm"
+            method={operation.method}
+            className="min-w-18 px-2.5 py-1 text-sm"
           />
         ) : (
-          <FallbackBadge className="min-w-[72px] px-2.5 py-1 text-sm">
-            {detail.method}
+          <FallbackBadge className="min-w-18 px-2.5 py-1 text-sm">
+            {operation.method}
           </FallbackBadge>
         )}
         <h2
           className={cn(
             "font-mono text-2xl text-fg-1",
-            detail.isDeleted && "text-fg-3",
+            operation.isDeleted && "text-fg-3",
           )}
         >
-          {detail.path}
+          {operation.path}
         </h2>
-        {detail.isDeleted && <span className="text-xs text-fg-3">삭제됨</span>}
+        {operation.isDeleted && (
+          <span className="text-xs text-fg-3">삭제됨</span>
+        )}
       </div>
 
-      {detail.summary && <p className="text-sm text-fg-3">{detail.summary}</p>}
+      {operation.summary && (
+        <p className="text-sm text-fg-3">{operation.summary}</p>
+      )}
 
       <div className="pt-4">
         {/* snapshotId 를 key 에 포함시킨다.
-            배너가 떠있을 때, 배너의 새로고침을 클릭해서 앵커가 바뀌면 operationJson이 바뀔 수도 있는데,
-            Try it out 입력값은 state 값으로 초기화 되어있어서 다시 마운트되지 않으면 예전값으로 보인다.
-            그래서 스냅샷 버전이 바뀌면 새로 마운트 될 수 있도록 키에 스냅샷 버전을 넣어준다. */}
+            배너 새로고침으로 앵커가 바뀌면 operationJson이 달라질 수 있는데,
+            Try it out 입력값은 useState 초기값이라 리마운트 시켜야 최신 내용으로 보낼 수 있다. */}
         <EndpointDetail
-          key={`${detail.id}-${detail.snapshotId}`}
-          method={detail.method}
-          path={detail.path}
-          operation={detail.operationJson}
+          key={`${operation.id}-${spec.snapshotId}`}
+          method={operation.method}
+          path={operation.path}
+          operation={operation.operationJson}
           cache={cache}
-          components={projectView.components}
-          baseUrl={projectView.tryItBaseUrl}
+          components={spec.components}
+          // baseUrl 은 meta 에서 온다 - 스펙이 아니라 프로젝트 설정값이고,
+          // 앵커와 무관하게 항상 최신이어야 한다.
+          baseUrl={meta.tryItBaseUrl}
         />
       </div>
     </div>
@@ -232,17 +164,21 @@ function CommentSlot({
   projectId,
   endpointId,
   isOwner,
+  outdated,
   endpoints,
 }: {
   projectId: number;
   endpointId: number | null;
   isOwner: boolean;
-  endpoints: EndpointSummary[];
+  // 스펙이 갱신된 상태. 상태가 어긋날 스펙을 개별적으로 골라내는 것이 아니고
+  // 배너가 떠 있는 동안은 댓글 이동 자체를 막는 안내를 띄운다.
+  outdated: boolean;
+  endpoints: SpecOperation[];
 }) {
   const { me } = useAuth();
 
   const membersQuery = useQuery({
-    queryKey: ["projects", projectId, "members"],
+    queryKey: ["project", projectId, "members"],
     queryFn: () => getMembers(projectId),
   });
 
@@ -267,6 +203,7 @@ function CommentSlot({
     <CommentPanel
       me={me}
       isOwner={isOwner}
+      outdated={outdated}
       // MemberView[] → PublicUser[]. 컨텍스트가 role 을 안 쓴다 —
       // Owner 판정은 isOwner 로 이미 내려온다.
       members={membersQuery.data.map((m) => m.user)}

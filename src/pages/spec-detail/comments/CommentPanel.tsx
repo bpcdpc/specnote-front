@@ -24,7 +24,7 @@ import {
   useCommentContext,
   type CommentData,
 } from "./CommentContext";
-import type { MentionIds, EndpointSummary } from "@/lib/types";
+import type { MentionIds, SpecOperation } from "@/lib/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
@@ -58,6 +58,7 @@ import type { REACTION_TYPE } from "@/lib/constants";
 export function CommentPanel({
   me,
   isOwner,
+  outdated,
   members,
   endpoints,
   endpointId,
@@ -94,6 +95,7 @@ export function CommentPanel({
       key={endpointId}
       me={me}
       isOwner={isOwner}
+      outdated={outdated}
       members={members}
       endpoints={endpoints}
       // 첫 렌더에만 쓰인다. 파라미터를 떼면 이 값은 null 이 되지만
@@ -126,7 +128,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
   // 댓글 이동 대상. null 이면 다이얼로그 안 뜸. 팝오버에서 고르면 세팅된다.
   // 이동 후 total 이 0 이 되므로, 다이얼로그 문구에 쓸 개수를 함께 담는다.
   const [moveTarget, setMoveTarget] = useState<{
-    endpoint: EndpointSummary;
+    endpoint: SpecOperation;
     count: number;
   } | null>(null);
 
@@ -270,7 +272,7 @@ function CommentPanelInner({ endpointId }: { endpointId: number | null }) {
       t.replies.some((r) => !r.isDeleted && !r.isAiGenerated),
   );
 
-  const pickMoveTarget = (endpoint: EndpointSummary) => {
+  const pickMoveTarget = (endpoint: SpecOperation) => {
     setMoveTarget({ endpoint, count: total });
   };
 
@@ -536,7 +538,7 @@ type PanelHeaderProps = {
     onSummarize: () => void;
     canSummarize: boolean;
     isSummarizing: boolean;
-    onPick: (target: EndpointSummary) => void;
+    onPick: (target: SpecOperation) => void;
   };
 };
 

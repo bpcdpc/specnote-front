@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { EndpointSummary, PublicUser } from "@/lib/types";
+import type { SpecOperation, PublicUser } from "@/lib/types";
 
 // 한 번에 하나만 열린다. 답글 에디터가 열린 채로 다른 곳의 수정을 누르면 앞의 것이 닫힌다.
 export type EditingState =
@@ -12,16 +12,17 @@ export type EditingState =
 export type CommentData = {
   me: PublicUser;
   isOwner: boolean;
+  outdated: boolean;
   members: PublicUser[];
   // 삭제 포함 전체. 이미 달린 멘션은 대상이 삭제돼도 유지되므로(FR-7.4)
   // 렌더가 삭제된 엔드포인트도 찾을 수 있어야 한다.
-  endpoints: EndpointSummary[];
+  endpoints: SpecOperation[];
 };
 
 // 컨텍스트가 제공하는 전체. 바깥이 준 것 + Provider 가 만든 편집 상태와 파생값.
 type CommentContextValue = CommentData & {
   // 새로 멘션하거나 댓글을 옮길 수 있는 대상. endpoints 에서 삭제된 것을 뺀 것이다.
-  activeEndpoints: EndpointSummary[];
+  activeEndpoints: SpecOperation[];
   editing: EditingState;
   setEditing: (next: EditingState) => void;
   highlightedId: number | null;
@@ -33,6 +34,7 @@ const CommentContext = createContext<CommentContextValue | null>(null);
 export function CommentProvider({
   me,
   isOwner,
+  outdated,
   members,
   endpoints,
   initialHighlightedId = null,
@@ -62,6 +64,7 @@ export function CommentProvider({
       value={{
         me,
         isOwner,
+        outdated,
         members,
         endpoints,
         activeEndpoints,

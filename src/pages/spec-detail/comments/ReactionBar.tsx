@@ -125,7 +125,7 @@ export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
                   <span aria-hidden="true" className="shrink-0">
                     {REACTION_META[reaction.type].emoji}
                   </span>
-                  <span className="min-w-0 break-words text-fg-2">
+                  <span className="min-w-0 wrap-break-word text-fg-2">
                     {reaction.users.map((u) => u.userName).join(", ")}
                   </span>
                 </li>

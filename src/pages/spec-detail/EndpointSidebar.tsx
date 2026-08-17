@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EndpointListItem } from "./EndpointListItem";
 import { PANEL } from "./panelMetrics";
-import type { EndpointSummary } from "@/lib/types";
+import type { SpecOperation } from "@/lib/types";
 
 // 태그가 없는 엔드포인트의 그룹명. OAS 는 태그 없는 operation 을 정상으로 규정하므로
 // 예외 취급하지 않고 그룹 하나로 묶어 맨 아래에 둔다.
 const NO_TAG = "Tag 없음";
 
-type Group = { tag: string; endpoints: EndpointSummary[] };
+type Group = { tag: string; endpoints: SpecOperation[] };
 
 // 태그별로 묶는다.
 //
@@ -19,8 +19,8 @@ type Group = { tag: string; endpoints: EndpointSummary[] };
 //    엔드포인트 배열이 스펙 원본 순서를 따르므로 이게 스펙 작성자의 의도에 가장 가깝다.
 // 2. 한 엔드포인트에 태그가 여럿이면 각 그룹에 모두 나타난다. OAS 의미가 그렇고
 //    Swagger UI 도 같게 동작한다.
-function groupByTag(endpoints: EndpointSummary[]): Group[] {
-  const map = new Map<string, EndpointSummary[]>();
+function groupByTag(endpoints: SpecOperation[]): Group[] {
+  const map = new Map<string, SpecOperation[]>();
 
   for (const endpoint of endpoints) {
     const tags = endpoint.tags.length > 0 ? endpoint.tags : [NO_TAG];
@@ -47,11 +47,7 @@ function groupByTag(endpoints: EndpointSummary[]): Group[] {
 // 2. 검색 중에는 모든 그룹을 펼친다. 접힌 그룹 안의 결과가 안 보이면 검색이 망가진다.
 // 3. 삭제된 엔드포인트는 기본 숨김이고 토글로 노출한다(FR-11.1).
 //    0건이면 토글 자체를 그리지 않는다.
-export function EndpointSidebar({
-  endpoints,
-}: {
-  endpoints: EndpointSummary[];
-}) {
+export function EndpointSidebar({ endpoints }: { endpoints: SpecOperation[] }) {
   const { projectId, endpointId } = useParams();
   const [query, setQuery] = useState("");
   const [showDeleted, setShowDeleted] = useState(false);

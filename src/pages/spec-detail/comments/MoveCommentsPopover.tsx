@@ -17,7 +17,7 @@ import {
 import { MethodBadge, FallbackBadge } from "@/components/MethodBadge";
 import { isHttpMethod } from "@/lib/constants";
 import { useCommentContext } from "./CommentContext";
-import type { EndpointSummary } from "@/lib/types";
+import type { SpecOperation } from "@/lib/types";
 
 type MoveCommentsPopoverProps = {
   // 현재 엔드포인트 — 이동 대상에서 제외한다. 같은 곳으로 옮기는 건 무의미하다.
@@ -26,7 +26,7 @@ type MoveCommentsPopoverProps = {
   // 안내 문구에 쓸 이동 대상 댓글 수.
   count: number;
   // 대상을 고르면 부모가 확인 다이얼로그를 연다.
-  onPick: (target: EndpointSummary) => void;
+  onPick: (target: SpecOperation) => void;
 };
 
 // MoveCommentsPopover — 댓글 전체 이동 (Owner 전용, FR-12)
@@ -42,13 +42,21 @@ type MoveCommentsPopoverProps = {
 //
 // activeEndpoints 를 쓴다. 삭제된 엔드포인트로는 옮기지 않는다(FR-12.3) —
 // 백엔드도 대상이 삭제됐으면 400 을 낸다. 여기서 현재 엔드포인트만 추가로 뺀다.
+//
+// 배너가 떠 있는 동안(outdated)에는 목록 대신 안내를 그린다.
+// 앵커 기준 후보에는 최신에서 이미 삭제된 것이 섞여 있을 수 있는데
+// 어느 것인지는 최신 spec 을 받아야 알 수 있다.
+// 개별 제외가 불가능하므로 이동 자체를 막는다.
+//
+// 트리거를 disabled 로 막지 않는다. popover 자체가 안 열리면 안되기 때문에.
+// disabled는 여전히 total === 0 일 경우에 사용되기 때문에 필요한 값이다.
 export function MoveCommentsPopover({
   currentEndpointId,
   disabled,
   count,
   onPick,
 }: MoveCommentsPopoverProps) {
-  const { activeEndpoints } = useCommentContext();
+  const { activeEndpoints, outdated } = useCommentContext();
   const [open, setOpen] = useState(false);
 
   const targets = activeEndpoints.filter((e) => e.id !== currentEndpointId);
@@ -73,43 +81,51 @@ export function MoveCommentsPopover({
         <div className="border-b border-border px-3 py-2.5">
           <p className="text-sm font-medium text-fg-1">댓글 전체 이동</p>
           <p className="mt-0.5 text-sm text-fg-3">
-            이 엔드포인트의 댓글 {count}개를 아래에서 고른 곳으로 옮깁니다
+            {outdated
+              ? "스펙이 업데이트되어 지금은 옮길 수 없습니다."
+              : `이 엔드포인트의 댓글 ${count}개를 아래에서 고른 곳으로 옮깁니다`}
           </p>
         </div>
 
-        <Command>
-          <CommandInput placeholder="엔드포인트 검색" />
-          <CommandList>
-            <CommandEmpty>옮길 엔드포인트가 없습니다</CommandEmpty>
-            {targets.map((endpoint) => (
-              <CommandItem
-                key={endpoint.id}
-                // method + path 로 검색되게 한다. path 만 쓰면 /courses 계열이
-                // 겹쳐 걸러지지 않고, method 로도 못 찾는다.
-                value={`${endpoint.method} ${endpoint.path}`}
-                onSelect={() => {
-                  setOpen(false);
-                  onPick(endpoint);
-                }}
-                className="gap-2"
-              >
-                {isHttpMethod(endpoint.method) ? (
-                  <MethodBadge
-                    method={endpoint.method}
-                    className="min-w-0 shrink-0 px-1 py-0 text-[10px]"
-                  />
-                ) : (
-                  <FallbackBadge className="min-w-0 shrink-0 px-1 py-0 text-[10px]">
-                    {endpoint.method}
-                  </FallbackBadge>
-                )}
-                <span className="min-w-0 truncate font-mono text-xs text-fg-2">
-                  {endpoint.path}
-                </span>
-              </CommandItem>
-            ))}
-          </CommandList>
-        </Command>
+        {outdated ? (
+          <p className="px-3 py-4 text-sm text-fg-3">
+            새로고침하면 최신 스펙의 엔드포인트로 옮길 수 있습니다.
+          </p>
+        ) : (
+          <Command>
+            <CommandInput placeholder="엔드포인트 검색" />
+            <CommandList>
+              <CommandEmpty>옮길 엔드포인트가 없습니다</CommandEmpty>
+              {targets.map((endpoint) => (
+                <CommandItem
+                  key={endpoint.id}
+                  // method + path 로 검색되게 한다. path 만 쓰면 /courses 계열이
+                  // 겹쳐 걸러지지 않고, method 로도 못 찾는다.
+                  value={`${endpoint.method} ${endpoint.path}`}
+                  onSelect={() => {
+                    setOpen(false);
+                    onPick(endpoint);
+                  }}
+                  className="gap-2"
+                >
+                  {isHttpMethod(endpoint.method) ? (
+                    <MethodBadge
+                      method={endpoint.method}
+                      className="min-w-0 shrink-0 px-1 py-0 text-[10px]"
+                    />
+                  ) : (
+                    <FallbackBadge className="min-w-0 shrink-0 px-1 py-0 text-[10px]">
+                      {endpoint.method}
+                    </FallbackBadge>
+                  )}
+                  <span className="min-w-0 truncate font-mono text-xs text-fg-2">
+                    {endpoint.path}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        )}
       </PopoverContent>
     </Popover>
   );

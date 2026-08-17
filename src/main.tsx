@@ -11,16 +11,19 @@ import { Toaster } from "./components/ui/toast";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/api/queryClient";
 import { AuthProvider } from "./app/AuthContext";
+import { SpecAnchorProvider } from "./app/SpecAnchorContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider delay={200}>
-            <RouterProvider router={router} />
-          </TooltipProvider>
-          <Toaster />
+          <SpecAnchorProvider>
+            <TooltipProvider delay={200}>
+              <RouterProvider router={router} />
+            </TooltipProvider>
+            <Toaster />
+          </SpecAnchorProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

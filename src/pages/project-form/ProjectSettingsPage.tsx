@@ -5,9 +5,10 @@ import { TryItBaseUrlField } from "./TryItBaseUrlField";
 import { MemberList } from "./MemberList";
 import { Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getProject } from "@/lib/api/projects";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
+import { getProjectMeta } from "@/lib/api/projects";
+import { parseId } from "@/lib/routeParams";
 
 // ProjectSettingsPage — 프로젝트 설정 (목)
 //
@@ -17,18 +18,27 @@ import { ErrorState } from "@/components/ErrorState";
 // URL 로 직접 들어온 경우를 여기서 막는다.
 export function ProjectSettingsPage() {
   const { projectId } = useParams();
-  const id = Number(projectId);
+  const id = parseId(projectId);
 
   const {
-    data: projectView,
+    data: meta,
     isPending,
     isError,
     error,
   } = useQuery({
-    queryKey: ["projects", id],
-    queryFn: () => getProject(id),
-    enabled: Number.isInteger(id) && id > 0,
+    queryKey: ["project", id],
+    queryFn: () => getProjectMeta(id!),
+    enabled: id !== null,
+    // 폴링은 켜지 않는다. 배너가 없는 화면이라 최신 스냅샷을 계속 물어볼 필요가 없다.
   });
+
+  if (id === null) {
+    return (
+      <div className="mx-auto max-w-3xl px-8 py-6">
+        <ErrorState error={null} fallback="프로젝트를 찾을 수 없습니다." />
+      </div>
+    );
+  }
 
   if (isPending) {
     return (
@@ -49,7 +59,7 @@ export function ProjectSettingsPage() {
   }
 
   // 백엔드에서 Member를 막지 않고 있어, url 로 직접 접근한 일반 멤버의 경우, redirect해줘야 한다.
-  const isOwner = projectView.project.role === "OWNER";
+  const isOwner = meta.role === "OWNER";
   if (!isOwner) {
     return <Navigate to={`/projects/${id}`} replace />;
   }
@@ -58,13 +68,10 @@ export function ProjectSettingsPage() {
     <div className="mx-auto max-w-3xl px-8 py-6">
       <div className="flex flex-col gap-10 py-8">
         <PageHeading icon={Settings} title="프로젝트 설정" />
-        <SpecJsonUrlField
-          projectId={id}
-          initialUrl={projectView.specJsonUrl ?? ""}
-        />
+        <SpecJsonUrlField projectId={id} initialUrl={meta.specJsonUrl ?? ""} />
         <TryItBaseUrlField
           projectId={id}
-          initialUrl={projectView.tryItBaseUrl ?? ""}
+          initialUrl={meta.tryItBaseUrl ?? ""}
         />
         <MemberList projectId={id} isOwner={isOwner} />
       </div>

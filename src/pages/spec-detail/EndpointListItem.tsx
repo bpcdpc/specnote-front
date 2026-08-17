@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import { MethodBadge, FallbackBadge } from "@/components/MethodBadge";
 import { cn } from "@/lib/utils";
 import { isHttpMethod } from "@/lib/constants";
-import type { EndpointSummary } from "@/lib/types";
+import type { SpecOperation } from "@/lib/types";
 
 type EndpointListItemProps = {
-  endpoint: EndpointSummary;
+  endpoint: SpecOperation;
   to: string;
   isSelected: boolean;
 };

@@ -19,7 +19,7 @@ type MemberListProps = {
 // 가입하지 않은 사람은 404 — 초대장을 보내지 않는다(FR-2.8).
 //
 // 초대와 제외 응답은 Membership 원형이라 이름이 없다. 그래서 응답을 쓰지 않고
-// 목록을 재조회한다. 진입 응답(["projects", id])과는 별개 캐시다.
+// 목록을 재조회한다. 진입 응답(["project", id])과는 별개 캐시다.
 export function MemberList({ projectId, isOwner }: MemberListProps) {
   const queryClient = useQueryClient();
   const { me } = useAuth();
@@ -27,9 +27,13 @@ export function MemberList({ projectId, isOwner }: MemberListProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const membersKey = ["projects", projectId, "members"];
+  const membersKey = ["project", projectId, "members"] as const;
 
-  const { data: members, isPending } = useQuery({
+  const {
+    data: members,
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: membersKey,
     queryFn: () => getMembers(projectId),
   });
@@ -96,6 +100,10 @@ export function MemberList({ projectId, isOwner }: MemberListProps) {
         <Field>
           {isPending ? (
             <p className="text-sm text-fg-3">불러오는 중…</p>
+          ) : isError ? (
+            <p className="text-sm text-fg-3">
+              멤버 목록을 불러오지 못했습니다.
+            </p>
           ) : (
             <ul className="flex flex-wrap gap-2">
               {members?.map((m) => {

@@ -17,12 +17,14 @@ import { useNavigate } from "react-router-dom";
 import type { NotificationView } from "@/lib/types";
 import { ApiError } from "@/lib/api/client";
 import { toast } from "./ui/toast";
+import { useSpecAnchor } from "@/app/SpecAnchorContext";
 
 // UserMenu — 헤더 우측 유저 메뉴
 //
 // 아바타 클릭 → 드롭다운(이름, 이메일, 알림, 테마 토글, 로그아웃).
 export function UserMenu() {
   const { me, logout } = useAuth();
+  const { clearAnchors } = useSpecAnchor();
   const { theme, toggleTheme } = useTheme();
 
   // refetchInterval에서
@@ -133,7 +135,15 @@ export function UserMenu() {
           )}
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={logout}>
+        {/* 앵커를 먼저 비운다. logout이 queryClient.clear() 로 스펙 캐시를 지우므로,
+        같은 시점에 앵커도 비워야 다음 계정이 앞 사람의 버전을 가리키지 않는다.
+        AuthContext 는 SpecAnchorProvider 의 조상이라 logout 안에서 부를 수 없다.  */}
+        <DropdownMenuItem
+          onClick={() => {
+            clearAnchors();
+            logout();
+          }}
+        >
           <LogOut className="size-4" />
           로그아웃
         </DropdownMenuItem>

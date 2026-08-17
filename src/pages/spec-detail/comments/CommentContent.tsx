@@ -74,7 +74,7 @@ export function CommentContent({ comment }: { comment: CommentView }) {
   );
 
   return (
-    <div className="text-sm leading-relaxed break-words text-fg-2 font-light">
+    <div className="text-sm leading-relaxed wrap-break-word text-fg-2 font-light">
       <Markdown
         remarkPlugins={[remarkBreaks, remarkGfm]}
         allowedElements={ALLOWED}
@@ -85,23 +85,17 @@ export function CommentContent({ comment }: { comment: CommentView }) {
           strong: ({ children }) => <>{children}</>,
           em: ({ children }) => <>{children}</>,
 
-          p: ({ children }) => (
-            <p className="[&:not(:first-child)]:mt-2">{children}</p>
-          ),
+          p: ({ children }) => <p className="not-first:mt-2">{children}</p>,
 
           del: ({ children }) => (
             <del className="text-fg-3 line-through">{children}</del>
           ),
 
           ul: ({ children }) => (
-            <ul className="mt-2 list-disc pl-4 [&:first-child]:mt-0">
-              {children}
-            </ul>
+            <ul className="mt-2 list-disc pl-4 first:mt-0">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="mt-2 list-decimal pl-4 [&:first-child]:mt-0">
-              {children}
-            </ol>
+            <ol className="mt-2 list-decimal pl-4 first:mt-0">{children}</ol>
           ),
           li: ({ children }) => <li className="mt-0.5">{children}</li>,
 
